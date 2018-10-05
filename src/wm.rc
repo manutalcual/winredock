@@ -1,0 +1,13 @@
+#include <windows.h>
+#include "resource.h"
+#define IDC_STATIC -1
+
+ID_TRAY_APP_ICON ICON "icon.ico"
+
+ID_TRAY_EXIT_CONTEXT_MENU_ITEM MENU
+{
+        POPUP "File"
+        {
+                MENUITEM "&Exit",IDCANCEL
+        }
+}
