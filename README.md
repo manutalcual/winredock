@@ -16,7 +16,7 @@ It is a *tool* so don't expect to be a production class
 application. (Comments and requess for improvement are welcome,
 however.)
 
-# Compilation
+### Compilation
 
 This is a Windows application, so it needs a Windows compiler. I prefer
 not to pay for development tools, and I'm a Linux guy, so I use
@@ -27,8 +27,8 @@ Then, the compilation.
 
 Just:
 
-    configure
-    make
+    $ configure
+    $ make
 
 The standar automake procedure.
 
@@ -38,9 +38,9 @@ tested, _and it contains my user name_, so you have to change that:
 
     "amadock"="C:\\Users\\mcano\\wm.exe"
 
-Where ir says "mcano" you have to write your Windows user name.
+Where it says "mcano" you have to write your Windows user name.
 
-Use instructions.
+### Use instructions.
 
 There will be an icon in your traybar showing a gear with a green
 arrow. Just right click on the icon and a menu will appear:
@@ -52,12 +52,15 @@ arrow. Just right click on the icon and a menu will appear:
     Exit
 
 Get windows: will get you current windows positions and sizes.
+
 Save config: will save those windows positions and sizes to a JSON
 file.
+
 Read config: will read that file.
+
 Exit: will exit from the app.
 
-At first run, you have to `Get windows` and `Save config.`, from no
+At first run, you have to `Get windows` and `Save config.`, from now
 on, you may `Read config` and, left clicking on the icon, the app will
 restore windows.
 
