@@ -18,16 +18,14 @@ dnl AC_HEADER_STDC
 dnl AC_CHECK_HEADERS([sys/types.h sys/socket.h stdlib.h unistd.h])
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-dnl AC_ARG_WITH([categoria],
-dnl
-dnl 	AC_HELP_STRING([--with-categoria=CAT],
-dnl 	[Definir categoria de log]),
-dnl 	[categoria=$withval], [LOG_CATEGORIA=DEBUG])
+AC_ARG_WITH([log],
+ 	AC_HELP_STRING([--with-log],
+ 	[Build with log. @<:@default=no@:>@]),
+ 	[with_log=$withval])
 
-dnl if test "$categoria" != ""; then
-dnl 	CXXFLAGS="$CXXFLAGS -DLOG_CATEGORIA=\\"$categoria\\""
-dnl fi
-
+AS_IF([test "x$with_log" == xyes],
+      [AC_DEFINE([WITH_LOG], [1],
+[Defined if you want output log.])])
 
 dnl AM_CONDITIONAL(FEATURE, [test x"$the_feature" != x])
 dnl AC_DEFUN(AC_MSG_SUMMARY, [echo $1])
@@ -52,5 +50,6 @@ dnl AC_SUBST(LDFLAGS)
 CFLAGS="-Wall -g $CFLAGS"
 
 AC_SUBST(CFLAGS)
+AC_SUBST(CXXFLAGS)
 AC_CONFIG_FILES([Makefile src/Makefile])
 AC_OUTPUT

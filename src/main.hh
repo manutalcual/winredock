@@ -32,13 +32,21 @@
 #include <fstream>
 
 #include <windows.h>
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "resource.h"
 
+#ifdef WITH_LOG
 #define logp(p, str) log << "[" << __FILE__								\
 	<< ":" << __LINE__ << "] " << str << std::endl
 #define logf(p) log << "[" << __FILE__								\
 	<< ":" << __LINE__ << ": "											\
 	<< __PRETTY_FUNCTION__ << "] " << std::endl
+#else
+#define logp(p, str)
+#define logf(p)
+#endif
 
 const std::string FILE_NAME ("window_list.json");
 

@@ -25,7 +25,9 @@
 //
 #include "main.hh"
 
+#ifdef WITH_LOG
 std::ofstream log ("wm.log");
+#endif
 
 int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, int iCmdShow )
 {
