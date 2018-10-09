@@ -23,112 +23,12 @@
 //
 // Includes
 //
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <iostream>
-#include <map>
-#include <fstream>
+#include "common.hh"
+#include "deserializer.hh"
 
-#include <windows.h>
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-#include "resource.h"
-
-#ifdef WITH_LOG
-#define logp(p, str) log << "[" << __FILE__								\
-	<< ":" << __LINE__ << "] " << str << std::endl
-#define logf(p) log << "[" << __FILE__								\
-	<< ":" << __LINE__ << ": "											\
-	<< __PRETTY_FUNCTION__ << "] " << std::endl
-#else
-#define logp(p, str)
-#define logf(p)
-#endif
-
-const std::string FILE_NAME ("window_list.json");
-
-template<typename Type>
-Type min (Type a, Type b)
-{
-	return a < b ? a : b;
-}
-
-namespace sys {
-	enum e_prio {
-		e_debug,
-		e_warning,
-		e_error,
-		e_critical,
-		e_failure
-	};
-
-	int atoi (std::string & str);
-}
-
-class win_t
-{
-public:
-	HWND _hwnd;
-	WINDOWPLACEMENT _place;
-	bool _deserialized;
-	std::string _title;
-	std::string _class_name;
-
-	win_t ()
-		: _hwnd{},
-		  _deserialized{}
-		{}
-};
-typedef std::map<HWND, win_t> mapwin_t;
 
 class serializer
 {
-	class stat_t
-	{
-	public:
-		stat_t (std::string file_name);
-		operator bool () { return _good; }
-		size_t size ();
-	private:
-		bool _good;
-		struct stat _st;
-	};
-	class file_t
-	{
-	public:
-		file_t (std::string file_name);
-		~file_t () { if (_file) ::fclose(_file); }
-		operator bool () { return _good; }
-		size_t size () { return _size; }
-		char & operator [] (int i) { return _buf[i]; }
-	private:
-		bool _good;
-		FILE * _file;
-		size_t _size;
-		char * _buf;
-	};
-	class deserial_t
-	{
-	public:
-		deserial_t (std::string file_name, mapwin_t & windows);
-		operator bool () { return _good; }
-		bool operator () ();
-	private:
-		bool _good;
-		file_t _in;
-		size_t _i;
-		mapwin_t & _win;
-
-		bool match (char c);
-		void skip_blanks ();
-		std::string get_string ();
-		std::string get_number ();
-		std::string get_value ();
-
-	};
 public:
 	serializer (mapwin_t & map);
 	bool operator () (std::string file_name);
@@ -156,9 +56,3 @@ LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
 void Restore ();
 void Minimize ();
 void InitNotifyIconData ();
-
-#ifdef UNICODE
-#define stringcopy wcscpy
-#else
-#define stringcopy strcpy
-#endif
