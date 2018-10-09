@@ -38,7 +38,53 @@ namespace mc {
 			return num;
 		}
 
+		stat_t::stat_t (std::string file_name)
+			: _good (::stat(file_name.c_str(), &_st) == 0)
+		{
+		}
 
+		size_t stat_t::size ()
+		{
+			return _st.st_size;
+		}
+
+		file_t::file_t (std::string file_name)
+			: _good (false),
+			  _file (::fopen(file_name.c_str(), "r")),
+			  _buf (nullptr)
+		{
+			logf ();
+
+			if (_file == nullptr) {
+				logp (sys::e_debug, "Ca't open file.");
+				return;
+			}
+
+			stat_t st (file_name);
+			if (! st) {
+				logp (sys::e_debug, "Can't stat file.");
+				return;
+			}
+
+			_buf = new char [st.size() + 1];
+			size_t readed = ::fread (_buf, 1, st.size(), _file);
+			if (readed != st.size()) {
+				logp (sys::e_debug, "Can't read the whole file.");
+				return;
+			}
+			_buf[st.size()] = '\0';
+			_size = st.size();
+			logp (sys::e_debug, "Data readed: "
+				  << _size << ".");
+			logp (sys::e_debug, "First char: '"
+				  << _buf[0] << "'.");
+			_good = true;
+		}
+
+		char & file_t::operator [] (int i)
+		{
+			return _buf[i];
+		}
 
 	} // namespace sys
 } // namespace mc

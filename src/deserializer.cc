@@ -31,6 +31,7 @@ namespace mc {
 		deserializer_t::deserializer_t (std::string file_name, mapwin_t & windows)
 			: _good (false),
 			  _in (file_name),
+			  _i (0),
 			  _win (windows)
 		{
 			_good = _in;
@@ -44,7 +45,6 @@ namespace mc {
 			++_i;
 			return true;
 		}
-
 
 		bool deserializer_t::operator () ()
 		{

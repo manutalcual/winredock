@@ -35,6 +35,7 @@
 #include <fstream>
 
 #include <windows.h>
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -78,6 +79,10 @@ typedef std::map<HWND, win_t> mapwin_t;
 namespace mc {
 	namespace sys {
 
+#ifdef WITH_LOG
+		extern std::ofstream log;
+#endif
+
 		template<typename Type>
 		Type min (Type a, Type b)
 		{
@@ -111,7 +116,7 @@ namespace mc {
 			~file_t () { if (_file) ::fclose(_file); }
 			operator bool () { return _good; }
 			size_t size () { return _size; }
-			char & operator [] (int i) { return _buf[i]; }
+			char & operator [] (int i);
 		private:
 			bool _good;
 			FILE * _file;
