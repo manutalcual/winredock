@@ -50,11 +50,13 @@ namespace mc {
 
 		bool deserializer_t::get_windows_config ()
 		{
+			logf ();
 			return get_windows_vector();
 		}
 
 		bool deserializer_t::get_windows_vector ()
 		{
+			logf ();
 			if (!match('[')) {
 				logp (sys::e_debug, "Syntax error, there should be an open "
 					  "quare bracket and there is a '"
@@ -68,9 +70,11 @@ namespace mc {
 
 			if (!match(']')) {
 				do {
+					logp (sys::e_debug, "...");
 					if (!get_class_entity()) {
 						return false;
 					}
+					logp (sys::e_debug, "char at pos: " << _in[_i]);
 				} while (match(','));
 			}
 			if (!match(']')) {
@@ -87,6 +91,7 @@ namespace mc {
 
 		bool deserializer_t::get_class_entity ()
 		{
+			logf ();
 			if (! match('{')) {
 				logp (sys::e_debug, "Syntax error, there should be an open brace.");
 				_errors.push_back (std::string("Syntax error, there shoul be an "
@@ -130,6 +135,7 @@ namespace mc {
 
 		bool deserializer_t::get_class_token ()
 		{
+			logf ();
 			skip_blanks ();
 			std::string name = get_string();
 			if (name != c_class) {
@@ -142,14 +148,17 @@ namespace mc {
 
 		bool deserializer_t::get_class_name ()
 		{
+			logf ();
 			skip_blanks ();
 			std::string value = get_value(); // class name
 			_win[++_count]._class_name = value;
 			_win[_count]._deserialized = true;
+			return true;
 		}
 
 		bool deserializer_t::get_class_data ()
 		{
+			logf ();
 			std::string data = get_string();
 
 			if (data != c_data) {
@@ -198,8 +207,13 @@ namespace mc {
 
 		bool deserializer_t::get_class_element ()
 		{
+			logf ();
 			std::string name = get_string();
-			std::string svalue;
+			std::string value;
+
+			skip_blanks ();
+			logp (sys::e_debug, "What is there? '"
+				  << _in[_i] << "'.");
 			if (!match(':')) {
 				logp (sys::e_debug, "There should be a colon and there is '"
 					  << _in[_i] << "'.");
@@ -209,10 +223,19 @@ namespace mc {
 								   + _in[_i] + "'.");
 				return false;
 			}
-			if (match(':')) {
+			if (!match('{')) {
+				logp (sys::e_debug, "Get class element: value");
 				skip_blanks ();
-				svalue = get_value();
-			} else if (match('{')) {
+				value = get_value();
+				if (name == c_title)
+					_win[_count]._title = value;
+				if (name == c_flags)
+					_win[_count]._place.flags = sys::atoi(value);
+				if (name == c_show)
+					_win[_count]._place.showCmd = sys::atoi(value);
+
+			} else if (--_i, match('{')) {
+				logp (sys::e_debug, "Get class element: subelement");
 				if (!get_sub_element(name)) {
 					return false;
 				}
@@ -239,6 +262,7 @@ namespace mc {
 
 		bool deserializer_t::get_sub_element (std::string element)
 		{
+			logf ();
 			bool ret = false;
 
 			if (element == c_min_position) {
@@ -259,6 +283,7 @@ namespace mc {
 
 		bool deserializer_t::get_min_position ()
 		{
+			logf ();
 			std::string name1 = get_string();
 			match (':');
 			std::string value1 = get_value();
@@ -266,10 +291,12 @@ namespace mc {
 			std::string name2 = get_string();
 			match (':');
 			std::string value2 = get_value();
+			return true;
 		}
 
 		bool deserializer_t::get_max_position ()
 		{
+			logf ();
 			std::string name1 = get_string();
 			match (':');
 			std::string value1 = get_value();
@@ -277,10 +304,12 @@ namespace mc {
 			std::string name2 = get_string();
 			match (':');
 			std::string value2 = get_value();
+			return true;
 		}
 
 		bool deserializer_t::get_placement ()
 		{
+			logf ();
 			std::string name1 = get_string();
 			match (':');
 			std::string value1 = get_value();
@@ -296,6 +325,7 @@ namespace mc {
 			std::string name4 = get_string();
 			match (':');
 			std::string value4 = get_value();
+			return true;
 		}
 
 		bool deserializer_t::operator () ()
@@ -303,367 +333,6 @@ namespace mc {
 			logf ();
 
 			return get_windows_config();
-
-			std::string name;
-			std::string value;
-			std::string data;
-
-			logp (sys::e_debug, "This is the first char: '"
-				  << _in[_i] << "'.");
-
-			if (_in[_i] != '[') {
-				logp (sys::e_debug,
-					  "Serialization file must begin with a '[' character.");
-				return false;
-			}
-			logp (sys::e_debug, "We begin with the havoc!");
-			HWND count = 0;
-			int st = 0; // status
-			skip_blanks ();
-			if (!match('[')) {
-				logp (sys::e_debug, "Syntax error, there should be an open whatever.");
-				return false;
-			}
-			skip_blanks ();
-			while (_i < _in.size()) {
-				logp (sys::e_debug, "Status: " << st);
-				switch (st) {
-				case 0: // class
-					skip_blanks ();
-					if (! match('{')) {
-						logp (sys::e_debug, "Syntax error, there should be an open brace.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					name = get_string();
-					if (name != "class") {
-						logp (sys::e_debug, "Schema error, expected 'class', '"
-							  << name << "' received.");
-						st = 99;
-					} else
-						st = 1;
-					break;
-				case 1: // class name
-					skip_blanks ();
-					if (! match(':')) {
-						logp (sys::e_debug, "Syntax error, expected ':' after a class begining, found '"
-							  << _in[_i] << "'.");
-						st = 99;
-					} else {
-						skip_blanks ();
-						value = get_value(); // class name
-						_win[++count]._class_name = value;
-						_win[count]._deserialized = true;
-						st = 2;
-					}
-					break;
-				case 2: // data
-					skip_blanks ();
-					if (! match(',')) {
-						logp (sys::e_debug, "Syntax error, there should be a comma.");
-						st = 99;
-					} else {
-						skip_blanks ();
-						data = get_string();
-						if (data != "data") {
-							logp (sys::e_debug, "Schema error, should be 'data' and there is "
-								  << data << "'.");
-							st = 99;
-							return false;
-						} else
-							st = 3;
-					}
-					break;
-				case 3: // data object
-					skip_blanks ();
-					if (! match(':')) {
-						logp (sys::e_debug, "Syntax error, there should be a colon.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					if (! match('{')) {
-						logp (sys::e_debug, "Syntax error, there should be an open brace.");
-						st = 99;
-						return false;
-					}
-					st = 4;
-					break;
-				case 4: // data values
-					skip_blanks ();
-					while (st == 4) {
-						name = get_string();
-						skip_blanks ();
-						if (!match(':')) {
-							logp (sys::e_debug, "Syntax error, there should be a colon.");
-							st = 99;
-							return false;
-						}
-						value = "";
-						skip_blanks ();
-						if (name == "title") {
-							value = get_value();
-							_win[count]._title = value;
-						} else if (name == "name")
-							value = get_value();
-						else if (name == "show") {
-							value = get_value();
-							_win[count]._place.length = sizeof(WINDOWPLACEMENT);
-							_win[count]._place.showCmd = sys::atoi(value);
-						} else if (name == "flags") {
-							value = get_value();
-							_win[count]._place.flags = sys::atoi(value);
-						} else if (name == "min_position") {
-							st = 5;
-						} else if (name == "max_position") {
-							st = 9;
-						} else if (name == "placement") {
-							st = 6;
-						} else {
-							logp (sys::e_debug, "Schema error, unknown "
-								  << data << "''field.");
-							st = 99;
-							return false;
-						}
-						if (value == "") {
-							logp (sys::e_debug, "Captured: '"
-								  << name << "' without value, or this is an old name.");
-						} else {
-							logp (sys::e_debug, "Captured '" << name
-								  << "': '" << value << "'.");
-						}
-						skip_blanks ();
-						if (!match(','))
-							--_i;
-					}
-					skip_blanks ();
-					break;
-				case 5: // min position
-					skip_blanks ();
-					// GET the X
-					if (! match('{')) {
-						logp (sys::e_debug,
-							  "Syntax error, there should be an open brace, there is '"
-							  << _in[_i] << "'.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					name = get_string();
-					skip_blanks ();
-					if (! match(':')) {
-						logp (sys::e_debug, "Syntax errot, there should be a colon.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					value = get_value();
-					_win[count]._place.ptMinPosition.x = sys::atoi(value);
-					skip_blanks ();
-					if (! match(',')) {
-						logp (sys::e_debug, "Syntax errot, there should be a comma.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					// GET the Y
-					name = get_string();
-					skip_blanks ();
-					if (! match(':')) {
-						logp (sys::e_debug, "Syntax errot, there should be a colon.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					value = get_value();
-					_win[count]._place.ptMinPosition.y = sys::atoi(value);
-					skip_blanks ();
-					if (! match('}')) {
-						logp (sys::e_debug, "Syntax errot, there should be a closing brace.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					if (match(',')) {
-						logp (sys::e_debug, "Syntax errot, there should be a closing brace.");
-						st = 4;
-					} else {
-						--_i; // retrieve the "match" eaten char
-					}
-					break;
-				case 9: // max position
-					skip_blanks ();
-					// GET the X
-					if (! match('{')) {
-						logp (sys::e_debug,
-							  "Syntax error, there should be an open brace, there is '"
-							  << _in[_i] << "'.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					name = get_string();
-					skip_blanks ();
-					if (! match(':')) {
-						logp (sys::e_debug, "Syntax errot, there should be a colon.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					value = get_value();
-					_win[count]._place.ptMaxPosition.x = sys::atoi(value);
-					skip_blanks ();
-					if (! match(',')) {
-						logp (sys::e_debug, "Syntax errot, there should be a comma.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					// GET the Y
-					name = get_string();
-					skip_blanks ();
-					if (! match(':')) {
-						logp (sys::e_debug, "Syntax errot, there should be a colon.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					value = get_value();
-					_win[count]._place.ptMaxPosition.y = sys::atoi(value);
-					skip_blanks ();
-					if (! match('}')) {
-						logp (sys::e_debug, "Syntax errot, there should be a closing brace.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					if (match(',')) {
-						logp (sys::e_debug, "Syntax errot, there should be a closing brace.");
-						st = 4;
-					} else {
-						--_i; // retrieve the "match" eaten char
-					}
-					break;
-				case 6:
-					skip_blanks ();
-					// GET the TOP
-					if (! match('{')) {
-						logp (sys::e_debug, "Syntax error, there should be an open brace.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					name = get_string();
-					skip_blanks ();
-					if (! match(':')) {
-						logp (sys::e_debug, "Syntax errot, there should be a colon.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					value = get_value();
-					_win[count]._place.rcNormalPosition.top = sys::atoi(value);
-					skip_blanks ();
-					if (! match(',')) {
-						logp (sys::e_debug, "Syntax errot, there should be a comma.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					// GET the LEFT
-					name = get_string();
-					skip_blanks ();
-					if (! match(':')) {
-						logp (sys::e_debug, "Syntax errot, there should be a colon.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					value = get_value();
-					_win[count]._place.rcNormalPosition.left = sys::atoi(value);
-					skip_blanks ();
-					if (! match(',')) {
-						logp (sys::e_debug, "Syntax error, there should be a comma, there is '"
-							  << _in[_i] << "'.");
-						st = 99;
-						return false;
-					}
-					++_i; // skip ,
-					skip_blanks ();
-					// GET the BOTTOM
-					name = get_string();
-					skip_blanks ();
-					if (! match(':')) {
-						logp (sys::e_debug, "Syntax errot, there should be a colon.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					value = get_value();
-					_win[count]._place.rcNormalPosition.bottom = sys::atoi(value);
-					skip_blanks ();
-					if (! match(',')) {
-						logp (sys::e_debug, "Syntax errot, there should be a comma.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					// GET the RIGHT
-					name = get_string();
-					skip_blanks ();
-					if (! match(':')) {
-						logp (sys::e_debug, "Syntax errot, there should be a colon.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					value = get_value();
-					_win[count]._place.rcNormalPosition.right = sys::atoi(value);
-					skip_blanks ();
-					if (! match('}')) {
-						logp (sys::e_debug, "Syntax errot, there should be a closing brace.");
-						st = 99;
-						return false;
-					}
-					st = 7;
-					break;
-				case 7: // closing brace of data
-					skip_blanks ();
-					if (! match('}')) {
-						logp (sys::e_debug, "Syntax errot, there should be a closing brace.");
-						st = 99;
-						return false;
-					}
-					st = 8;
-					break;
-				case 8: // closing brace of class
-					skip_blanks ();
-					if (! match('}')) {
-						logp (sys::e_debug, "Syntax errot, there should be a closing brace.");
-						st = 99;
-						return false;
-					}
-					skip_blanks ();
-					if (match(',')) {
-						st = 0;
-					} else {
-						logp (sys::e_debug, "Parsing finished succesfully.");
-						return true;
-					}
-					break;
-				case 99:
-					logp (sys::e_debug, "There has been an error and I can't continue.");
-					return false;
-					break;
-				default:
-					logp (sys::e_debug, "Unknown state when parsing.");
-					break;
-				}
-			}
-
-			logp (sys::e_debug, "Parsing finished succesfuly.");
-			return true;
 		}
 
 		std::string deserializer_t::get_value ()
@@ -671,10 +340,10 @@ namespace mc {
 			logf ();
 			skip_blanks ();
 			if (_in[_i] == '"') {
-				logp (sys::e_debug, "Selected 'string' to parse.");
+				logp (sys::e_debug, "Selected 'string' to parse." << _in[_i]);
 				return get_string();
 			} else {
-				logp (sys::e_debug, "Selected 'number' to parse.");
+				logp (sys::e_debug, "Selected 'number' to parse. " << _in[_i]);
 				return get_number();
 			}
 			return "";
@@ -685,6 +354,8 @@ namespace mc {
 			logf ();
 			std::string value;
 			skip_blanks ();
+			logp (sys::e_debug, "  begin with '"
+				  << _in[_i] << "'.");
 			if (_in[_i] == '-') {
 				value += '-';
 				++_i; // skip - (minus sign)

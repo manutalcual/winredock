@@ -228,7 +228,9 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				// Get windows opened
 				EnumWindows (&Enum, (LPARAM)&windows);
 			} else if (clicked == ID_TRAY_LOAD_MENU) {
-				serial.deserialize (FILE_NAME, windows);
+				if (!serial.deserialize(FILE_NAME, windows)) {
+					logp (sys::e_debug, "Ouch! Deserializer failed!");
+				}
 				EnumWindows (&Enum, (LPARAM)&windows);
 				uniform_windows (windows);
 			} else {
