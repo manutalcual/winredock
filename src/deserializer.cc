@@ -29,16 +29,18 @@ namespace mc {
 	namespace ds {
 
 		deserializer_t::deserializer_t (std::string file_name, mapwin_t & windows)
-			: _good (false),
-			  _in (file_name),
-			  _i (0),
-			  _win (windows)
+			: _good {false},
+			  _in {file_name},
+			  _i {0},
+			  _win {windows},
+			  _count{0}
 		{
 			_good = _in;
 		}
 
 		bool deserializer_t::match (char c)
 		{
+			skip_blanks ();
 			if (_in[_i] != c)
 				return false;
 
@@ -46,9 +48,262 @@ namespace mc {
 			return true;
 		}
 
+		bool deserializer_t::get_windows_config ()
+		{
+			return get_windows_vector();
+		}
+
+		bool deserializer_t::get_windows_vector ()
+		{
+			if (!match('[')) {
+				logp (sys::e_debug, "Syntax error, there should be an open "
+					  "quare bracket and there is a '"
+					  << _in[_i] << "'.");
+				_errors.push_back (std::string("Bad file format. Config file "
+											   "must begin with an array square "
+											   "braket and it begins with '")
+								   + _in[_i] + "'..");
+				return false;
+			}
+
+			if (!match(']')) {
+				do {
+					if (!get_class_entity()) {
+						return false;
+					}
+				} while (match(','));
+			}
+			if (!match(']')) {
+				logp (sys::e_debug, "Syntax error, there should be a close "
+					  "square bracket and there is a '" << _in[_i] << "'.");
+				_errors.push_back (std::string("Config file must be ended by a "
+											   "close square bracket and no '")
+								   + _in[_i] + "'.");
+				return false;
+			}
+
+			return true;
+		}
+
+		bool deserializer_t::get_class_entity ()
+		{
+			if (! match('{')) {
+				logp (sys::e_debug, "Syntax error, there should be an open brace.");
+				_errors.push_back (std::string("Syntax error, there shoul be an "
+											   "open brace and there is '")
+								   + _in[_i] + "'.");
+				return false;
+			}
+
+			if (!get_class_token()) {
+				return false;
+			}
+			if (!match(':')) {
+				logp (sys::e_debug, "Syntax error, there should be a colon an "
+					  " there is '" << _in[_i] << "'.");
+				_errors.push_back (std::string("Class keyword and class name must"
+											   " be separated by a space and "
+											   " there is '")
+								   + _in[_i] + "'.");
+				return false;
+			}
+			if (!get_class_name()) {
+				return false;
+			}
+			if (match(',')) {
+				if (!get_class_data()) {
+					return false;
+				}
+			}
+
+			skip_blanks ();
+			if (!match('}')) {
+				logp (sys::e_debug, "Bad class entity termination. (No '}' at end.)");
+				_errors.push_back (std::string("Syntax error, there should be a "
+											   "close bracket '}' and there is a '")
+											   + _in[_i] + "'.");
+				return false;
+			}
+
+			return true;
+		}
+
+		bool deserializer_t::get_class_token ()
+		{
+			skip_blanks ();
+			std::string name = get_string();
+			if (name != c_class) {
+				logp (sys::e_debug, "Schema error, expected 'class', '"
+					  << name << "' received.");
+				return false;
+			}
+			return true;
+		}
+
+		bool deserializer_t::get_class_name ()
+		{
+			skip_blanks ();
+			std::string value = get_value(); // class name
+			_win[++_count]._class_name = value;
+			_win[_count]._deserialized = true;
+		}
+
+		bool deserializer_t::get_class_data ()
+		{
+			std::string data = get_string();
+
+			if (data != c_data) {
+				logp (sys::e_debug, "There should be 'data' and there is '"
+					  << data << "'.");
+				_errors.push_back (std::string("Data section must begin "
+											   "with 'data' name, currently "
+											   "begins with '")
+								   + data + "'.");
+				return false;
+			}
+			if (!match(':')) {
+				logp (sys::e_debug, "There should be a colon and there is '"
+					  << _in[_i] << "'.");
+				_errors.push_back (std::string("Data section name and value must "
+											   "be separated by a colon and "
+											   "there is '")
+								   + _in[_i] + "'.");
+				return false;
+			}
+			if (!match('{')) {
+				logp (sys::e_debug, "There should be an open brace and there is '"
+					  << _in[_i] << "'.");
+				_errors.push_back (std::string("Data section must begin with an open brace "
+											   "and there is '")
+								   + _in[_i] + "'.");
+				return false;
+			}
+			if (!match('}')) {
+				do {
+					if (!get_class_element()) {
+						return false;
+					}
+				} while (match(','));
+			}
+			if (!match('}')) {
+				logp (sys::e_debug, "There should be an close brace and there is '"
+					  << _in[_i] << "'.");
+				_errors.push_back (std::string("Data section must end with a close brace "
+											   "and there is '")
+								   + _in[_i] + "'.");
+				return false;
+			}
+			return true;
+		}
+
+		bool deserializer_t::get_class_element ()
+		{
+			std::string name = get_string();
+			std::string svalue;
+			if (!match(':')) {
+				logp (sys::e_debug, "There should be a colon and there is '"
+					  << _in[_i] << "'.");
+				_errors.push_back (std::string("Element and values must "
+											   "be separated by a colon and "
+											   "there is '")
+								   + _in[_i] + "'.");
+				return false;
+			}
+			if (match(':')) {
+				skip_blanks ();
+				svalue = get_value();
+			} else if (match('{')) {
+				if (!get_sub_element(name)) {
+					return false;
+				}
+				if (!match('}')) {
+					logp (sys::e_debug, "There should be a close brace"
+						  " and there is '" << _in[_i] << "'.");
+					_errors.push_back (std::string("Element values must "
+												   "end with close brace and "
+												   "there is '")
+									   + _in[_i] + "'.");
+					return false;
+				}
+			} else {
+				logp (sys::e_debug, "There should be a colon or an open brace"
+					  " and there is '" << _in[_i] << "'.");
+				_errors.push_back (std::string("Element values must "
+											   "begin with color on open brace and "
+											   "there is '")
+								   + _in[_i] + "'.");
+				return false;
+			}
+			return true;
+		}
+
+		bool deserializer_t::get_sub_element (std::string element)
+		{
+			bool ret = false;
+
+			if (element == c_min_position) {
+				ret = get_min_position();
+			} else if (element == c_max_position) {
+				ret = get_max_position();
+			} else if (element == c_placement) {
+				ret = get_placement();
+			} else {
+				logp (sys::e_debug, "Unknown element: '"
+					  << element << "'.");
+				_errors.push_back (std::string("Unknown element: '")
+								   + element + "'.");
+				return false;
+			}
+			return ret;
+		}
+
+		bool deserializer_t::get_min_position ()
+		{
+			std::string name1 = get_string();
+			match (':');
+			std::string value1 = get_value();
+			match (',');
+			std::string name2 = get_string();
+			match (':');
+			std::string value2 = get_value();
+		}
+
+		bool deserializer_t::get_max_position ()
+		{
+			std::string name1 = get_string();
+			match (':');
+			std::string value1 = get_value();
+			match (',');
+			std::string name2 = get_string();
+			match (':');
+			std::string value2 = get_value();
+		}
+
+		bool deserializer_t::get_placement ()
+		{
+			std::string name1 = get_string();
+			match (':');
+			std::string value1 = get_value();
+			match (',');
+			std::string name2 = get_string();
+			match (':');
+			std::string value2 = get_value();
+			match (',');
+			std::string name3 = get_string();
+			match (':');
+			std::string value3 = get_value();
+			match (',');
+			std::string name4 = get_string();
+			match (':');
+			std::string value4 = get_value();
+		}
+
 		bool deserializer_t::operator () ()
 		{
 			logf ();
+
+			return get_windows_config();
+
 			std::string name;
 			std::string value;
 			std::string data;
@@ -444,18 +699,18 @@ namespace mc {
 		std::string deserializer_t::get_string ()
 		{
 			logf ();
-			skip_blanks ();
 			logp (sys::e_debug, "  get string begins with: '"
 				  << _in[_i] << "'.");
-			if (_in[_i] != '"') {
+			if (!match('"')) {
 				logp (sys::e_debug, "Not getting anything.");
 				return "";
 			}
-			++_i;
 			std::string str;
 			while (_in[_i] != '"')
 				str += _in[_i++];
-			++_i; // skip closing "
+			if (!match ('"')) {
+				logp (sys::e_debug, "This can't happen!");
+			}
 			logp (sys::e_debug, "  captured '"
 				  << str << "'. (remaining char '"
 				  << _in[_i] << "')");

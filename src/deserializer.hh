@@ -23,10 +23,11 @@
 //
 // Includes
 //
-#include "common.hh"
-
 #ifndef deserializer_h
 #define deserializer_h
+#include <vector>
+
+#include "common.hh"
 
 namespace mc {
 	namespace ds {
@@ -53,10 +54,26 @@ namespace mc {
 			operator bool () { return _good; }
 			bool operator () ();
 		private:
+			//using vecerrors_t = std:vector<std::string>;
+			typedef std::vector<std::string> vecerrors_t;
 			bool _good;
 			sys::file_t _in;
 			size_t _i;
 			mapwin_t _win;
+			vecerrors_t _errors;
+			HWND _count;
+
+			bool get_windows_config ();
+			bool get_windows_vector ();
+			bool get_class_entity ();
+			bool get_class_token ();
+			bool get_class_name ();
+			bool get_class_data ();
+			bool get_class_element ();
+			bool get_sub_element (std::string element);
+			bool get_min_position ();
+			bool get_max_position ();
+			bool get_placement ();
 
 			bool match (char ch);
 			void skip_blanks ();
