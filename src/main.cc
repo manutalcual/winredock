@@ -172,6 +172,14 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			for (; begin != end; ++begin) {
 				logp (sys::e_debug, "Setting placement for '"
 					  << begin->second._title << "'");
+				if (begin->second._place.showCmd == SW_MAXIMIZE) {
+					WINDOWPLACEMENT wp = begin->second._place;
+					wp.showCmd = SW_RESTORE;
+					wp.flags = WPF_ASYNCWINDOWPLACEMENT;
+					SetWindowPlacement (begin->second._hwnd, &wp);
+					ShowWindow (begin->second._hwnd, SW_MINIMIZE);
+					ShowWindow (begin->second._hwnd, SW_SHOW);
+				}
 				if (SetWindowPlacement(begin->second._hwnd, &begin->second._place)) {
 					logp (sys::e_debug, "Can't set window placement for last window.");
 				} else {
