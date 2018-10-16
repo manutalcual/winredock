@@ -21,7 +21,16 @@ however.)
 Use the zip in "bin" directory. There are Cygwin64 DLLs and the
 executable app.
 
-### Compilation
+### Compilation (MS Visual Studio)
+
+Go to the `msvs` folder, double click on the solution file (sln) and
+compile whatever you want: Debug, Release.
+
+Of course, for this version you don't need cygwin64 dlls, but you may
+need MS c++ distributables, I don't know. (If so, file an issue on
+Github.)
+
+### Compilation (Cygwin64)
 
 This is a Windows application, so it needs a Windows compiler. I prefer
 not to pay for development tools, and I'm a Linux guy, so I use
