@@ -404,18 +404,18 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 	mapwin_t & windows = *(mapwin_t *)lParam;
 
     if (IsAltTabWindow(hwnd) && IsWindowVisible(hwnd)) {
-		const int BUF_SIZE = 124;
-		CHAR class_name[BUF_SIZE];
+		const int BUF_SIZE = 1024;
+		char class_name[BUF_SIZE];
 
-		get_class_name (hwnd, class_name, BUF_SIZE);
-		if (discard_window_app_frame(class_name, ::strlen(class_name)))
+		get_class_name (hwnd, (LPSTR)class_name, BUF_SIZE);
+		if (discard_window_app_frame((const char *)class_name, ::strlen(class_name)))
 			return TRUE;
 
 		win_t win;
         CHAR buf[260];
 
 		win._hwnd = hwnd;
-        GetWindowText(hwnd, buf, ARRAYSIZE(buf));
+        GetWindowTextA(hwnd, buf, ARRAYSIZE(buf));
 		win._title = buf;
 		win._class_name = class_name;
 		logp (sys::e_debug, "Adding window with class '" << class_name << "'.");
@@ -433,10 +433,10 @@ bool get_window_placement (HWND hwnd, WINDOWPLACEMENT & place)
 	return GetWindowPlacement(hwnd, &place);
 }
 
-bool get_class_name (HWND hwnd, LPTSTR buf, INT buf_size)
+bool get_class_name (HWND hwnd, LPSTR buf, INT buf_size)
 {
 	bool result = true;
-	UINT length = GetClassName(hwnd, buf, buf_size);
+	UINT length = GetClassNameA(hwnd, buf, buf_size);
 
 	if (! length) {
 		result = false;
@@ -445,11 +445,11 @@ bool get_class_name (HWND hwnd, LPTSTR buf, INT buf_size)
 	return result;
 }
 
-bool discard_window_app_frame (LPTSTR class_name, INT buf_size)
+bool discard_window_app_frame (const char * class_name, INT buf_size)
 {
-	const char cn[] = "ApplicationFrameWindow";
+	const char * cn = "ApplicationFrameWindow";
 
-	if (::strncmp(class_name, cn, sys::min(::strlen(class_name), ::strlen(cn))) == 0)
+	if (::strncmp((const char *)class_name, cn, sys::amin(::strlen(class_name), ::strlen(cn))) == 0)
 		return true;
 
 	return false;

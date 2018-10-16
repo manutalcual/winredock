@@ -29,7 +29,13 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef _WIN64
+#include <io.h>
+#define __PRETTY_FUNCTION__ __FUNCSIG__
+#else
 #include <unistd.h>
+#endif
+#include <string>
 #include <iostream>
 #include <map>
 #include <fstream>
@@ -47,15 +53,16 @@
 #define stringcopy strcpy
 #endif
 
+
 #ifdef WITH_LOG
 #define logp(p, str) mc::sys::log << "[" << __FILE__	\
 	<< ":" << __LINE__ << "] " << str << std::endl
-#define logf(p) mc::sys::log << "[" << __FILE__							\
+#define logf() mc::sys::log << "[" << __FILE__							\
 	<< ":" << __LINE__ << ": "											\
 	<< __PRETTY_FUNCTION__ << "] " << std::endl
 #else
 #define logp(p, str)
-#define logf(p)
+#define logf()
 #endif
 
 const std::string FILE_NAME ("window_list.json");
@@ -84,7 +91,7 @@ namespace mc {
 #endif
 
 		template<typename Type>
-		Type min (Type a, Type b)
+		Type amin (Type a, Type b)
 		{
 			return a < b ? a : b;
 		}
