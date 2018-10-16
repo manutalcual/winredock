@@ -18,7 +18,7 @@ however.)
 
 ### Not compiling
 
-Use the binaries in "bin" directory. There are Cygwin64 DLLs and the
+Use the zip in "bin" directory. There are Cygwin64 DLLs and the
 executable app.
 
 ### Compilation
