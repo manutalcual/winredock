@@ -16,6 +16,11 @@ It is a *tool* so don't expect to be a production class
 application. (Comments and requess for improvement are welcome,
 however.)
 
+### Not compiling
+
+Use the binaries in "bin" directory. There are Cygwin64 DLLs and the
+executable app.
+
 ### Compilation
 
 This is a Windows application, so it needs a Windows compiler. I prefer
