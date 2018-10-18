@@ -5,7 +5,8 @@ bin_PROGRAMS = wm
 wm_SOURCES = main.hh main.cc \
 	wm.rc resource.h \
 	common.hh common.cc \
-	deserializer.hh deserializer.cc
+	deserializer.hh deserializer.cc \
+	window.hh window.cc
 
 .rc.o:
 	windres $^ -O coff -o $@

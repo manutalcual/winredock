@@ -25,6 +25,7 @@
 //
 #include "common.hh"
 #include "deserializer.hh"
+#include "window.hh"
 
 
 class serializer

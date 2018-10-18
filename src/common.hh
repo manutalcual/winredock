@@ -31,7 +31,7 @@
 #include <sys/stat.h>
 #ifdef _WIN64
 #include <io.h>
-#define __PRETTY_FUNCTION__ __FUNCSIG__
+#define __PRETTY_FUNCTION__ __FUNCTION__
 #else
 #include <unistd.h>
 #endif

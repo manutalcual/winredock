@@ -27,190 +27,140 @@
 
 using namespace mc;
 
+const char c_class_name[] = "WinReDock";
+const char c_window_title[] = "WinReDock - restore windows to pre-undock positions";
+const char c_taskbar_icon_text[] = "Amadeus tooling: dockerify after undock!";
+mcm::window<c_class_name,
+			WndProc,
+			(CS_HREDRAW | CS_VREDRAW),
+			c_window_title> * g_app = nullptr;
+
+mapwin_t windows;
+
 int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, int iCmdShow )
 {
-	TCHAR className[] = TEXT( "WindowsRestorer" );
-
-	logp (sys::e_debu, "Creating window with class name: " << className);
-
-	// I want to be notified when windows explorer
-	// crashes and re-launches the taskbar.  the WM_TASKBARCREATED
-	// event will be sent to my WndProc() AUTOMATICALLY whenever
-	// explorer.exe starts up and fires up the taskbar again.
-	// So its great, because now, even if explorer crashes,
-	// I have a way to re-add my system tray icon in case
-	// the app is already in the "minimized" (hidden) state.
-	// if we did not do this an explorer crashed, the application
-	// would remain inaccessible!!
-	WM_TASKBARCREATED = RegisterWindowMessageA("TaskbarCreated") ;
-
-	// add a console, because I love consoles.
-	// To disconnect the console, just comment out
-	// the next 3 lines of code.
-	//AllocConsole ();
-	//AttachConsole (GetCurrentProcessId());
-	//freopen ("CON", "w", stdout);
-
-	WNDCLASSEX wnd = { 0 };
-	g_hInstance = hInstance;
-	wnd.hInstance = hInstance;
-	wnd.lpszClassName = className;
-	wnd.lpfnWndProc = WndProc;
-	wnd.style = CS_HREDRAW | CS_VREDRAW ;
-	wnd.cbSize = sizeof (WNDCLASSEX);
-
-	wnd.hIcon = LoadIcon (NULL, IDI_APPLICATION);
-	wnd.hIconSm = LoadIcon (NULL, IDI_APPLICATION);
-	wnd.hCursor = LoadCursor (NULL, IDC_ARROW);
-	wnd.hbrBackground = (HBRUSH)COLOR_APPWORKSPACE ;
-
-	if (!RegisterClassEx(&wnd)) {
-		FatalAppExit( 0, TEXT("Couldn't register window class!") );
-	}
-
-	g_hwnd = CreateWindowEx(
-		0, className,
-		TEXT( "Using the system tray" ),
-		WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, CW_USEDEFAULT,
-		400, 400,
-		NULL, NULL,
-		hInstance, NULL
-		);
-
-	// Add the label with instruction text
-	CreateWindow (TEXT("static"), TEXT("right click the system tray icon to close"),
-				  WS_CHILD /* | WS_VISIBLE */ | SS_CENTER,
-                  0, 0, 400, 400, g_hwnd, 0, hInstance, NULL);
-
-	// Initialize the NOTIFYICONDATA structure once
-	InitNotifyIconData ();
-
-	Shell_NotifyIcon (NIM_ADD, &g_notifyIconData);
-	//ShowWindow (g_hwnd, iCmdShow);
-
-	MSG msg;
-	while (GetMessage (&msg, NULL, 0, 0)) {
-		TranslateMessage (&msg);
-		DispatchMessage (&msg);
-	}
-
-
-	// Once you get the quit message, before exiting the app,
-	// clean up and remove the tray icon
-	if( !IsWindowVisible(g_hwnd)) {
-		Shell_NotifyIcon (NIM_DELETE, &g_notifyIconData);
-	}
-
-	return msg.wParam;
-}
-
-LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	static mapwin_t windows;
-
-	if (message == WM_TASKBARCREATED && !IsWindowVisible(g_hwnd)) {
-		Minimize ();
-		return 0;
-	}
+	logf ();
+	logp (sys::e_debu, "Creating window with class name: " << c_class_name);
 
 	serializer serial (windows);
+	if (!serial.deserialize(FILE_NAME, windows)) {
+		logp (sys::e_debug, "Ouch! Deserializer failed!");
+	}
 
-	switch (message) {
-	case WM_CREATE:
-		// create the menu once.
-		// oddly, you don't seem to have to explicitly attach
-		// the menu to the HWND at all.  This seems so ODD.
-		g_menu = CreatePopupMenu();
+	EnumWindows (&Enum, (LPARAM)&windows);
+	uniform_windows (windows);
 
-		AppendMenu (g_menu, MF_STRING, ID_TRAY_LOAD_WINDOWS_MENU, TEXT("Get windows"));
-		AppendMenu (g_menu, MF_STRING, ID_TRAY_SAVE_MENU, TEXT("Save config."));
-		AppendMenu (g_menu, MF_STRING, ID_TRAY_LOAD_MENU, TEXT("Read config."));
-		AppendMenu (g_menu, MF_SEPARATOR, NULL, NULL);
-		AppendMenu (g_menu, MF_STRING, ID_TRAY_EXIT_CONTEXT_MENU_ITEM,  TEXT("Exit"));
+	mcm::window<c_class_name,
+				WndProc,
+				(CS_HREDRAW | CS_VREDRAW),
+				c_window_title>
+		app (hInstance, hPrevInstance, args, iCmdShow);
+	g_app = &app; // for WndProc
 
-		logp (sys::e_debug, "Window WM_CREATEd, going to analyze windows positions.");
+	app[WM_CREATE] =
+		[&app](HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+			logf ();
+			app.create_menu (
+				// Context left click function
+				[&app] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+					mapwin_t::iterator begin = windows.begin();
+					mapwin_t::iterator end = windows.end();
+					for (; begin != end; ++begin) {
+						logp (sys::e_debug, "Setting placement for '"
+							  << begin->second._title << "'");
+						if (begin->second._place.showCmd == SW_MAXIMIZE) {
+							WINDOWPLACEMENT wp = begin->second._place;
+							wp.showCmd = SW_RESTORE;
+							wp.flags = WPF_ASYNCWINDOWPLACEMENT;
+							SetWindowPlacement (begin->second._hwnd, &wp);
+							ShowWindow (begin->second._hwnd, SW_MINIMIZE);
+							ShowWindow (begin->second._hwnd, SW_SHOW);
+						}
+						if (SetWindowPlacement(begin->second._hwnd, &begin->second._place)) {
+							logp (sys::e_debug, "Can't set window placement for last window.");
+						} else {
+							ShowWindow (begin->second._hwnd, SW_MINIMIZE);
+							ShowWindow (begin->second._hwnd, SW_SHOW);
+						}
+					}
+					return app;
+				}) // Context menus and functions
+				.add_menu_item(MF_STRING,
+							   ID_TRAY_LOAD_WINDOWS_MENU,
+							   TEXT("Get windows"),
+							   [&app] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+								   logp (sys::e_debug, "Call to load windows.");
+								   windows.clear ();
+								   // Get windows opened
+								   EnumWindows (&Enum, (LPARAM)&windows);
+								   return app;
+							   })
+				.add_menu_item(MF_STRING,
+							   ID_TRAY_SAVE_MENU,
+							   TEXT("Save config."),
+							   [&app] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+								   logp (sys::e_debug, "Calling to serialize data.");
+								   serializer serial (windows);
+								   serial (FILE_NAME);
+								   logp (sys::e_debug, "Ok. Done.");
+								   return app;
+							   })
+				.add_menu_item(MF_STRING,
+							   ID_TRAY_LOAD_MENU,
+							   TEXT("Read config."),
+							   [&app] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+								   logp (sys::e_debug, "Calling to read file.");
+								   serializer serial (windows);
+								   if (!serial.deserialize(FILE_NAME, windows)) {
+									   logp (sys::e_debug, "Ouch! Deserializer failed!");
+								   }
+								   EnumWindows (&Enum, (LPARAM)&windows);
+								   uniform_windows (windows);
+								   return app;
+							   })
+				.add_menu_item(MF_SEPARATOR, 0, NULL)
+				.add_menu_item(MF_STRING,
+							   ID_TRAY_EXIT_CONTEXT_MENU_ITEM,
+							   TEXT("Exit"),
+							   [&app] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+								   logp (sys::e_debug, "Calling to exit app.");
+								   PostQuitMessage (0) ;
+								   return app; // this should never be reached
+							   });
+			return app;
+		};
 
-		serial.deserialize (FILE_NAME, windows);
-		EnumWindows (&Enum, (LPARAM)&windows);
-		uniform_windows (windows);
-
-		break;
-
-	case WM_SYSCOMMAND:
-		// (filter out reserved lower 4 bits:  see msdn remarks
-		// http://msdn.microsoft.com/en-us/library/ms646360(VS.85).aspx)
-		switch (wParam & 0xfff0) {
-		case SC_MINIMIZE:
-		case SC_CLOSE:  // redundant to WM_CLOSE, it appears
-			Minimize ();
-			return 0;
-			break;
-		}
-		break;
-
-	case WM_TRAYICON:
-    {
-		switch(wParam) {
-		case ID_TRAY_APP_ICON:
-			break;
-		}
-
-		// the mouse button has been released.
-
-		// I'd LIKE TO do this on WM_LBUTTONDOWN, it makes
-		// for a more responsive-feeling app but actually
-		// the guy who made the original post is right.
-		// Most apps DO respond to WM_LBUTTONUP, so if you
-		// restore your window on WM_LBUTTONDOWN, then some
-		// other icon will scroll in under your mouse so when
-		// the user releases the mouse, THAT OTHER ICON will
-		// get the WM_LBUTTONUP command and that's quite annoying.
-		if (lParam == WM_LBUTTONUP) {
-			mapwin_t::iterator begin = windows.begin();
-			mapwin_t::iterator end = windows.end();
-			for (; begin != end; ++begin) {
-				logp (sys::e_debug, "Setting placement for '"
-					  << begin->second._title << "'");
-				if (begin->second._place.showCmd == SW_MAXIMIZE) {
-					WINDOWPLACEMENT wp = begin->second._place;
-					wp.showCmd = SW_RESTORE;
-					wp.flags = WPF_ASYNCWINDOWPLACEMENT;
-					SetWindowPlacement (begin->second._hwnd, &wp);
-					ShowWindow (begin->second._hwnd, SW_MINIMIZE);
-					ShowWindow (begin->second._hwnd, SW_SHOW);
-				}
-				if (SetWindowPlacement(begin->second._hwnd, &begin->second._place)) {
-					logp (sys::e_debug, "Can't set window placement for last window.");
-				} else {
-					ShowWindow (begin->second._hwnd, SW_MINIMIZE);
-					ShowWindow (begin->second._hwnd, SW_SHOW);
-				}
+	app[WM_SYSCOMMAND] =
+		[&app] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+			logf ();
+			switch (wParam & 0xfff0) {
+			case SC_MINIMIZE:
+			case SC_CLOSE:
+				app.minimize ();
+				break;
 			}
-		} else if (lParam == WM_RBUTTONDOWN) {
-			// I'm using WM_RBUTTONDOWN here because
-			// it gives the app a more responsive feel.  Some apps
-			// DO use this trick as well.  Right clicks won't make
-			// the icon disappear, so you don't get any annoying behavior
-			// with this (try it out!)
+			return app;
+		};
 
-			// Get current mouse position.
+	app[WM_NCHITTEST] =
+		[&app] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+			logf ();
+			UINT uHitTest = DefWindowProc(hwnd, WM_NCHITTEST, wParam, lParam);
+			if(uHitTest == HTCLIENT)
+				return HTCAPTION;
+			else
+				return uHitTest;
+		};
+
+	app[WM_TRAYICON] =
+		[&app] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+			logf ();
 			POINT curPoint;
 			GetCursorPos (&curPoint);
-
-			// should SetForegroundWindow according
-			// to original poster so the popup shows on top
 			SetForegroundWindow (hwnd);
-
-			// TrackPopupMenu blocks the app until TrackPopupMenu returns
 			UINT clicked = TrackPopupMenu(
-				g_menu,
-				TPM_RETURNCMD | TPM_NONOTIFY, // don't send me
-											  // WM_COMMAND messages
-											  // about this window,
-											  // instead return the
-											  // identifier of the
-											  // clicked menu item
+				app.get_menu_handle(),
+				TPM_RETURNCMD | TPM_NONOTIFY,
 				curPoint.x,
 				curPoint.y,
 				0,
@@ -218,61 +168,30 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				NULL
 				);
 
-			// Original poster's line of code.  Haven't deleted it,
-			// but haven't seen a need for it.
-			//SendMessage(hwnd, WM_NULL, 0, 0); // send benign message
-			// to window to make sure the menu goes away.
-			if (clicked == ID_TRAY_EXIT_CONTEXT_MENU_ITEM) {
-				// quit the application.
-				PostQuitMessage (0) ;
-			} else if (clicked == ID_TRAY_SAVE_MENU) {
-				logp (sys::e_debug, "Calling to serialize data.");
-				serializer serial (windows);
-				serial (FILE_NAME);
-				logp (sys::e_debug, "Ok. Done.");
-			} else if (clicked == ID_TRAY_LOAD_WINDOWS_MENU) {
-				logp (sys::e_debug, "Call to load windows.");
-				windows.clear ();
-				// Get windows opened
-				EnumWindows (&Enum, (LPARAM)&windows);
-			} else if (clicked == ID_TRAY_LOAD_MENU) {
-				if (!serial.deserialize(FILE_NAME, windows)) {
-					logp (sys::e_debug, "Ouch! Deserializer failed!");
-				}
-				EnumWindows (&Enum, (LPARAM)&windows);
-				uniform_windows (windows);
-			} else {
-				logp (sys::e_debug, "Clicked " << clicked << " element.");
-			}
-		}
-    }
-    break;
+			//SendMessage (hwnd, WM_NULL, 0, 0);
+			return clicked;
+		};
 
-	// intercept the hittest message.. making full body of
-	// window draggable.
-	case WM_NCHITTEST:
-	{
-		// http://www.catch22.net/tuts/tips
-		// this tests if you're on the non client area hit test
-		UINT uHitTest = DefWindowProc(hwnd, WM_NCHITTEST, wParam, lParam);
-		if(uHitTest == HTCLIENT)
-			return HTCAPTION;
-		else
-			return uHitTest;
+	if (! app.create()) {
+		mcm::win_error err ("Can't create window object.");
+		err ();
 	}
 
-	case WM_CLOSE:
-		Minimize ();
-		return 0;
-		break;
+	logp (sys::e_debug, "Registering for taskbar creation message.");
+	app.register_for_taskbar_message ();
+	app.add_taskbar_icon<NIF_ICON | NIF_MESSAGE | NIF_TIP,
+						 ID_TRAY_APP_ICON,
+						 WM_TRAYICON,
+						 c_taskbar_icon_text> ();
 
-	case WM_DESTROY:
-		PostQuitMessage (0);
-		break;
+	logp (sys::e_debug, "En creations, begin the main loop.");
 
-	}
+	return app.loop(); //msg.wParam;
+}
 
-	return DefWindowProc( hwnd, message, wParam, lParam ) ;
+LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	return g_app->handle (hwnd, message, wParam, lParam);
 }
 
 void uniform_windows (mapwin_t & windows)
@@ -325,79 +244,6 @@ void uniform_windows (mapwin_t & windows)
 		}
 	}
 }
-
-// Initialize the NOTIFYICONDATA structure.
-// See MSDN docs http://msdn.microsoft.com/en-us/library/bb773352(VS.85).aspx
-// for details on the NOTIFYICONDATA structure.
-void InitNotifyIconData ()
-{
-	memset (&g_notifyIconData, 0, sizeof( NOTIFYICONDATA));
-
-	g_notifyIconData.cbSize = sizeof(NOTIFYICONDATA);
-
-	/////
-	// Tie the NOTIFYICONDATA struct to our
-	// global HWND (that will have been initialized
-	// before calling this function)
-	g_notifyIconData.hWnd = g_hwnd;
-	// Now GIVE the NOTIFYICON.. the thing that
-	// will sit in the system tray, an ID.
-	g_notifyIconData.uID = ID_TRAY_APP_ICON;
-	// The COMBINATION of HWND and uID form
-	// a UNIQUE identifier for EACH ITEM in the
-	// system tray.  Windows knows which application
-	// each icon in the system tray belongs to
-	// by the HWND parameter.
-	/////
-
-	/////
-	// Set up flags.
-	g_notifyIconData.uFlags = NIF_ICON | // promise that the hIcon
-										 // member WILL BE A VALID
-										 // ICON!!
-		NIF_MESSAGE | // when someone clicks on the system tray icon,
-		// we want a WM_ type message to be sent to our WNDPROC
-		NIF_TIP;      // we're gonna provide a tooltip as well, son.
-
-	g_notifyIconData.uCallbackMessage = WM_TRAYICON; //this message
-													 //must be handled
-													 //in hwnd's
-													 //window
-													 //procedure. more
-													 //info below.
-
-	// Load da icon.  Be sure to include an icon "icon.ico" .. get one
-	// from the internet if you don't have an icon
-	/*
-	g_notifyIconData.hIcon = (HICON)LoadImage(NULL, TEXT("icon.ico"),
-											  IMAGE_ICON, 0, 0, LR_LOADFROMFILE );
-	*/
-	g_notifyIconData.hIcon = (HICON)LoadIcon(g_hInstance, MAKEINTRESOURCE(ID_TRAY_APP_ICON));
-
-	// set the tooltip text.  must be LESS THAN 64 chars
-	stringcopy(g_notifyIconData.szTip, TEXT("Amadeus tooling: dockerify after undock!"));
-}
-
-void Minimize ()
-{
-	// add the icon to the system tray
-	Shell_NotifyIcon (NIM_ADD, &g_notifyIconData);
-
-	// ..and hide the main window
-	ShowWindow (g_hwnd, SW_HIDE);
-}
-
-// Basically bring back the window (SHOW IT again)
-// and remove the little icon in the system tray.
-void Restore ()
-{
-	// Remove the icon from the system tray
-	Shell_NotifyIcon (NIM_DELETE, &g_notifyIconData);
-
-	// ..and show the window
-	ShowWindow (g_hwnd, SW_SHOW);
-}
-
 
 BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 {
@@ -578,3 +424,74 @@ bool serializer::deserialize (std::string file_name, mapwin_t & windows)
 
 	return true;
 }
+
+
+#if 0
+	// I want to be notified when windows explorer
+	// crashes and re-launches the taskbar.  the WM_TASKBARCREATED
+	// event will be sent to my WndProc() AUTOMATICALLY whenever
+	// explorer.exe starts up and fires up the taskbar again.
+	// So its great, because now, even if explorer crashes,
+	// I have a way to re-add my system tray icon in case
+	// the app is already in the "minimized" (hidden) state.
+	// if we did not do this an explorer crashed, the application
+	// would remain inaccessible!!
+	WM_TASKBARCREATED = RegisterWindowMessageA("TaskbarCreated") ;
+
+	// add a console, because I love consoles.
+	// To disconnect the console, just comment out
+	// the next 3 lines of code.
+	//AllocConsole ();
+	//AttachConsole (GetCurrentProcessId());
+	//freopen ("CON", "w", stdout);
+	WNDCLASSEX wnd = { 0 };
+	g_hInstance = hInstance;
+	wnd.hInstance = hInstance;
+	wnd.lpszClassName = c_class_name;
+	wnd.lpfnWndProc = WndProc;
+	wnd.style = CS_HREDRAW | CS_VREDRAW ;
+	wnd.cbSize = sizeof (WNDCLASSEX);
+
+	wnd.hIcon = LoadIcon (NULL, IDI_APPLICATION);
+	wnd.hIconSm = LoadIcon (NULL, IDI_APPLICATION);
+	wnd.hCursor = LoadCursor (NULL, IDC_ARROW);
+	wnd.hbrBackground = (HBRUSH)COLOR_APPWORKSPACE ;
+
+	if (!RegisterClassEx(&wnd)) {
+		FatalAppExit( 0, TEXT("Couldn't register window class!") );
+	}
+
+	g_hwnd = CreateWindowEx(
+		0, c_class_name,
+		TEXT( "Using the system tray" ),
+		WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		400, 400,
+		NULL, NULL,
+		hInstance, NULL
+		);
+
+	// Add the label with instruction text
+	CreateWindow (TEXT("static"), TEXT("right click the system tray icon to close"),
+				  WS_CHILD /* | WS_VISIBLE */ | SS_CENTER,
+                  0, 0, 400, 400, g_hwnd, 0, hInstance, NULL);
+
+	// Initialize the NOTIFYICONDATA structure once
+	InitNotifyIconData ();
+
+	Shell_NotifyIcon (NIM_ADD, &g_notifyIconData);
+	//ShowWindow (g_hwnd, iCmdShow);
+
+	MSG msg;
+	while (GetMessage (&msg, NULL, 0, 0)) {
+		TranslateMessage (&msg);
+		DispatchMessage (&msg);
+	}
+
+
+	// Once you get the quit message, before exiting the app,
+	// clean up and remove the tray icon
+	if( !IsWindowVisible(g_hwnd)) {
+		Shell_NotifyIcon (NIM_DELETE, &g_notifyIconData);
+	}
+#endif
