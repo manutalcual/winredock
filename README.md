@@ -23,6 +23,16 @@ executable app.
 
 ### Compilation (MS Visual Studio)
 
+There are errors actually in the VS compilation because of some
+template machinery. Also because "using" statement.
+
+I have the "comunity" VS version, so I don't really know if this an
+issue with the code (although it compiles cleanly on Cygwin GCC) or a
+version problem (being too old to allow those constructions.)
+In any case, I don't have time to fix this unless there is a real
+interest: if you want to compile from Windows, file an issue (or
+better, as for a pull request!)
+
 Go to the `msvs` folder, double click on the solution file (sln) and
 compile whatever you want: Debug, Release.
 
