@@ -27,7 +27,7 @@
 
 const char c_class_name[] = "WinReDock";
 const char c_window_title[] = "WinReDock - restore windows to pre-undock positions";
-const char c_taskbar_icon_text[] = "Amadeus tooling: dockerify after undock!";
+const char c_taskbar_icon_text[] = "WinReDock -- tooling; dockerify after undock!";
 mcm::window<c_class_name,
 			WndProc,
 			(CS_HREDRAW | CS_VREDRAW),

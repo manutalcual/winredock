@@ -1,7 +1,7 @@
 //-*- mode: c++; indent-tabs-mode: t; -*-
 //
 // Class: window Copyright (c) 2018 Manuel Cano
-// Author: manuel.cano@amadeus.com
+// Author: manutalcual@gmail.com
 // Date: Tue Sep 18 16:57:22 2018
 // Time-stamp: <>
 //

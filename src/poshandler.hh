@@ -1,7 +1,7 @@
 //-*- mode: c++; indent-tabs-mode: t; -*-
 //
 // Class: poshandler Copyright (c) 2018 Manuel Cano
-// Author: manuel.cano@amadeus.com
+// Author: manutalcual@gmail.com
 // Date: Tue Sep 18 14:33:22 2018
 // Time-stamp: <>
 //

@@ -1,7 +1,7 @@
 //-*- mode: c++; indent-tabs-mode: t; -*-
 //
 // Class: deserializer Copyright (c) 2018 Manuel Cano
-// Author: manuel.cano@amadeus.com
+// Author: manutalcual@gmail.com
 // Date: Tue Oct 09 10::22 2018
 // Time-stamp: <>
 //
