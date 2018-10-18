@@ -55,9 +55,9 @@
 
 
 #ifdef WITH_LOG
-#define logp(p, str) mc::sys::log << "[" << __FILE__	\
+#define logp(p, str) mcm::sys::log << "[" << __FILE__	\
 	<< ":" << __LINE__ << "] " << str << std::endl
-#define logf() mc::sys::log << "[" << __FILE__							\
+#define logf() mcm::sys::log << "[" << __FILE__							\
 	<< ":" << __LINE__ << ": "											\
 	<< __PRETTY_FUNCTION__ << "] " << std::endl
 #else
@@ -83,7 +83,7 @@ public:
 };
 typedef std::map<HWND, win_t> mapwin_t;
 
-namespace mc {
+namespace mcm {
 	namespace sys {
 
 #ifdef WITH_LOG
@@ -132,6 +132,6 @@ namespace mc {
 		};
 
 	} // namespace sys
-} // namespace mc
+} // namespace mcm
 
 #endif // common_h

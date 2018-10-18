@@ -29,60 +29,57 @@
 
 #include "common.hh"
 
-namespace mc {
-	namespace ds {
+namespace mcm {
+	const char c_class[] = "class";
+	const char c_data[] = "data";
+	const char c_title[] = "title";
+	const char c_flags[] = "flags";
+	const char c_show[] = "show";
+	const char c_min_position[] = "min_position";
+	const char c_max_position[] = "max_position";
+	const char c_placement[] = "placement";
+	const char c_x[] = "x";
+	const char c_y[] = "y";
+	const char c_top[] = "top";
+	const char c_left[] = "left";
+	const char c_right[] = "right";
+	const char c_bottom[] = "bottom";
 
-		const char c_class[] = "class";
-		const char c_data[] = "data";
-		const char c_title[] = "title";
-		const char c_flags[] = "flags";
-		const char c_show[] = "show";
-		const char c_min_position[] = "min_position";
-		const char c_max_position[] = "max_position";
-		const char c_placement[] = "placement";
-		const char c_x[] = "x";
-		const char c_y[] = "y";
-		const char c_top[] = "top";
-		const char c_left[] = "left";
-		const char c_right[] = "right";
-		const char c_bottom[] = "bottom";
+	class deserializer_t
+	{
+	public:
+		deserializer_t (std::string file_name, mapwin_t & windows);
+		operator bool () { return _good; }
+		bool operator () ();
+	private:
+		//using vecerrors_t = std:vector<std::string>;
+		typedef std::vector<std::string> vecerrors_t;
+		bool _good;
+		mcm::sys::file_t _in;
+		size_t _i;
+		mapwin_t _win;
+		vecerrors_t _errors;
+		HWND _count;
 
-		class deserializer_t
-		{
-		public:
-			deserializer_t (std::string file_name, mapwin_t & windows);
-			operator bool () { return _good; }
-			bool operator () ();
-		private:
-			//using vecerrors_t = std:vector<std::string>;
-			typedef std::vector<std::string> vecerrors_t;
-			bool _good;
-			sys::file_t _in;
-			size_t _i;
-			mapwin_t _win;
-			vecerrors_t _errors;
-			HWND _count;
+		bool get_windows_config ();
+		bool get_windows_vector ();
+		bool get_class_entity ();
+		bool get_class_token ();
+		bool get_class_name ();
+		bool get_class_data ();
+		bool get_class_element ();
+		bool get_sub_element (std::string element);
+		bool get_min_position ();
+		bool get_max_position ();
+		bool get_placement ();
 
-			bool get_windows_config ();
-			bool get_windows_vector ();
-			bool get_class_entity ();
-			bool get_class_token ();
-			bool get_class_name ();
-			bool get_class_data ();
-			bool get_class_element ();
-			bool get_sub_element (std::string element);
-			bool get_min_position ();
-			bool get_max_position ();
-			bool get_placement ();
+		bool match (char ch);
+		void skip_blanks ();
+		std::string get_string ();
+		std::string get_number ();
+		std::string get_value ();
+	};
 
-			bool match (char ch);
-			void skip_blanks ();
-			std::string get_string ();
-			std::string get_number ();
-			std::string get_value ();
-		};
-
-	} // namespace ds
 } // nammespace m
 
 #endif

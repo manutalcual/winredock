@@ -6,7 +6,9 @@ wm_SOURCES = main.hh main.cc \
 	wm.rc resource.h \
 	common.hh common.cc \
 	deserializer.hh deserializer.cc \
-	window.hh window.cc
+	window.hh window.cc \
+	poshandler.hh poshandler.cc \
+	serializer.hh serializer.cc
 
 .rc.o:
 	windres $^ -O coff -o $@

@@ -25,7 +25,7 @@
 //
 #include "common.hh"
 
-namespace mc {
+namespace mcm {
 	namespace sys {
 
 #ifdef WITH_LOG
@@ -87,4 +87,4 @@ namespace mc {
 		}
 
 	} // namespace sys
-} // namespace mc
+} // namespace mcm
