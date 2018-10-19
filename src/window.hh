@@ -30,7 +30,9 @@
 
 namespace mcm {
 
+	using Func = std::function<DWORD(HWND, UINT, WPARAM, LPARAM)>;
 	using FuncProc = LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM);
+	extern Func noop; // = [](HWND, UINT, WPARAM, LPARAM) -> DWORD
 
 	const char * get_msg (UINT msg);
 
@@ -40,7 +42,19 @@ namespace mcm {
 			 const char * WindowTitle>
 	class window
 	{
-		using Func = std::function<DWORD(HWND, UINT, WPARAM, LPARAM)>;
+		class callable
+		{
+		public:
+			callable () : func (noop) {}
+			callable (Func & f) : func (f) {}
+			DWORD operator () (HWND a, UINT b, WPARAM c, LPARAM d)
+			{
+				return func(a,b,c,d);
+			}
+
+			Func func;
+		};
+
 	public:
 		window (HINSTANCE instance,
 				HINSTANCE previous,
@@ -159,6 +173,9 @@ namespace mcm {
 					logp (sys::e_debug, "Error handling message: " << message << ".");
 				}
 				break;
+			case WM_COMMAND:
+				logp (sys::e_debug, "WM_COMMAND message received.");
+				break;
 			case WM_TRAYICON:
 				logp (sys::e_debug, "WM_TRAYICON message received.");
 				if (lParam == WM_LBUTTONUP) {
@@ -237,7 +254,7 @@ namespace mcm {
 
 		Func & operator [] (DWORD index)
 		{
-			return _funcmap[index];
+			return _funcmap[index].func;
 		}
 
 		HMENU get_menu_handle ()
@@ -266,7 +283,7 @@ namespace mcm {
 		NOTIFYICONDATA _notify_icon_data;
 		bool _ready;
 		Func _icon_click;
-		std::map<DWORD, Func> _funcmap;
+		std::map<DWORD, callable> _funcmap;
 	};
 
 } // namespace mcm

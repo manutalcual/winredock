@@ -24,6 +24,11 @@
 
 namespace mcm {
 
+	Func noop = [](HWND, UINT, WPARAM, LPARAM) -> DWORD {
+					logp (sys::e_debug, "noop lambda");
+					return 0;
+				};
+
 	typedef struct {
 		unsigned int code;
 		const char * text;
