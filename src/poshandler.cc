@@ -101,6 +101,10 @@ namespace mcm {
 		if (!serial.deserialize(file_name)) {
 			logp (sys::e_debug, "Ouch! Deserializer failed!");
 		}
+		for (auto & w : _windows) {
+			logp (sys::e_debug, "Poshandler window: " << w.second._deserialized
+				  << ", '" << w.second._title << "'.");
+		}
 		uniform_windows ();
 	}
 
@@ -116,14 +120,16 @@ namespace mcm {
 				wp.showCmd = SW_RESTORE;
 				wp.flags = WPF_ASYNCWINDOWPLACEMENT;
 				SetWindowPlacement (begin->second._hwnd, &wp);
-				ShowWindow (begin->second._hwnd, SW_MINIMIZE);
+				ShowWindow (begin->second._hwnd, SW_RESTORE);
 				ShowWindow (begin->second._hwnd, SW_SHOW);
 			}
-			if (SetWindowPlacement(begin->second._hwnd, &begin->second._place)) {
+			if (! SetWindowPlacement(begin->second._hwnd, &begin->second._place)) {
 				logp (sys::e_debug, "Can't set window placement for last window.");
+				win_error error ("Can't reposition window.");
 			} else {
-				ShowWindow (begin->second._hwnd, SW_MINIMIZE);
-				ShowWindow (begin->second._hwnd, SW_SHOW);
+				ShowWindow (begin->second._hwnd, SW_HIDE);
+				ShowWindow (begin->second._hwnd, SW_RESTORE);
+				//ShowWindow (begin->second._hwnd, SW_SHOW);
 			}
 		}
 	}
@@ -138,17 +144,33 @@ namespace mcm {
 				  << item.second._title << "'.");
 			for (auto & other : _windows) {
 				if (/* item != other and */
-					! other.second._deserialized and
+					!item.second._deserialized and
+					other.second._deserialized and
 					other.second._class_name == item.second._class_name and
 					other.second._title == item.second._title)
 				{
-					win_t & fakew = item.second; // from file
-					win_t & realw = other.second; // from OS
-					logp (sys::e_debug, "Nomalize '"
+					win_t & realw = item.second; // from file
+					win_t & fakew = other.second; // from OS
+					logp (sys::e_debug, "\tnomalize '"
+						  << realw._deserialized << "', '"
 						  << realw._class_name << "', '"
 						  << realw._title << "' with '"
+						  << fakew._deserialized << "', '"
 						  << fakew._class_name << "', '"
 						  << fakew._title << "'.");
+					logp (sys::e_debug, "\tMin position: x "
+						  << fakew._place.ptMinPosition.x
+						  << ", y " << fakew._place.ptMinPosition.y);
+					logp (sys::e_debug, "\tMax position: "
+						  << fakew._place.ptMaxPosition.x
+						  << ", y " << fakew._place.ptMaxPosition.y);
+					logp (sys::e_debug, "\tPlacement: "
+						  << fakew._place.ptMaxPosition.x
+						  << ", top " << fakew._place.rcNormalPosition.top
+						  << ", left " << fakew._place.rcNormalPosition.left
+						  << ", right " << fakew._place.rcNormalPosition.right
+						  << ", bottom " << fakew._place.rcNormalPosition.bottom);
+
 					realw._place.length = sizeof(WINDOWPLACEMENT);
 					realw._place.flags = fakew._place.flags;
 					realw._place.showCmd = fakew._place.showCmd;

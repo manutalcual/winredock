@@ -54,14 +54,14 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 			logf ();
 			app.create_menu (
 				// Context left click function
-				[&app] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+				[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 					positioner.reposition ();
 					return app;
 				}) // Context menus and functions
 				.add_menu_item(MF_STRING,
 							   ID_TRAY_LOAD_WINDOWS_MENU,
 							   TEXT("Get windows"),
-							   [&app] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 								   logp (sys::e_debug, "Call to load windows.");
 								   positioner.get_windows ();
 								   return app;
@@ -69,7 +69,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 				.add_menu_item(MF_STRING,
 							   ID_TRAY_SAVE_MENU,
 							   TEXT("Save config."),
-							   [&app] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 								   logp (sys::e_debug, "Calling to serialize data.");
 								   positioner.save_configuration (file_name);
 								   logp (sys::e_debug, "Ok. Done.");
@@ -78,7 +78,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 				.add_menu_item(MF_STRING,
 							   ID_TRAY_LOAD_MENU,
 							   TEXT("Read config."),
-							   [&app] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 								   logp (sys::e_debug, "Calling to read file.");
 								   positioner.load_configuration (file_name);
 								   return app;
@@ -87,7 +87,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 				.add_menu_item(MF_STRING,
 							   ID_TRAY_EXIT_CONTEXT_MENU_ITEM,
 							   TEXT("Exit"),
-							   [&app] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 								   logp (sys::e_debug, "Calling to exit app.");
 								   PostQuitMessage (0) ;
 								   return app; // this should never be reached
@@ -96,7 +96,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 		};
 
 	app[WM_SYSCOMMAND] =
-		[&app] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+		[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 			logf ();
 			switch (wParam & 0xfff0) {
 			case SC_MINIMIZE:
@@ -108,7 +108,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 		};
 
 	app[WM_NCHITTEST] =
-		[&app] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+		[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 			logf ();
 			UINT uHitTest = DefWindowProc(hwnd, WM_NCHITTEST, wParam, lParam);
 			if(uHitTest == HTCLIENT)
@@ -118,7 +118,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 		};
 
 	app[WM_TRAYICON] =
-		[&app] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+		[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 			logf ();
 			POINT curPoint;
 			GetCursorPos (&curPoint);
@@ -156,5 +156,11 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 
 LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	return g_app->handle (hwnd, message, wParam, lParam);
+	logp (sys::e_debug, "Message received: "
+		  << message << ", "
+		  << wParam << ", " << lParam << "'.");
+	LRESULT r = g_app->handle (hwnd, message, wParam, lParam);
+	logp (sys::e_debug, "Return from handled: "
+		  << r);
+	return r;
 }

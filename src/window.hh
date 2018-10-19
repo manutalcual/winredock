@@ -34,35 +34,6 @@ namespace mcm {
 
 	const char * get_msg (UINT msg);
 
-	class win_error
-	{
-	public:
-		win_error (const char * msg)
-			: _msg (msg)
-		{
-		}
-		win_error & operator () ()
-		{
-			logp (sys::e_debug, _msg);
-			DWORD error = GetLastError();
-			LPVOID lpMsgBuf;
-			FormatMessage(
-				FORMAT_MESSAGE_ALLOCATE_BUFFER |
-				FORMAT_MESSAGE_FROM_SYSTEM |
-				FORMAT_MESSAGE_IGNORE_INSERTS,
-				NULL,
-				error,
-				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-				(LPTSTR) &lpMsgBuf,
-				0, NULL );
-			logp (sys::e_debug, "Error: " << (char *)lpMsgBuf);
-			FatalAppExit (0, TEXT(_msg));
-			return *this; // this will never be reached!
-		}
-	private:
-		const char * _msg;
-	};
-
 	template<const char * ClassName,
 			 FuncProc WndProc,
 			 int Style,
@@ -167,7 +138,8 @@ namespace mcm {
 		{
 			logp (sys::e_debug, "Message received: "
 				  << message
-				  << "='" << get_msg(message) << "'.");
+				  << "='" << get_msg(message) << "', "
+				  << wParam << ", " << lParam << "'.");
 
 			switch (message) {
 			case WM_NULL:
@@ -175,17 +147,20 @@ namespace mcm {
 				return 0;
 				break;
 			case WM_CREATE:
+				logp (sys::e_debug, "WM_CREATE message received.");
 				_ready = true;
 				if (! _funcmap[message] (hwnd, message, wParam, lParam)) {
 					logp (sys::e_debug, "Error handling message: " << message << ".");
 				}
 				break;
 			case WM_SYSCOMMAND:
+				logp (sys::e_debug, "WM_SYSCOMMAND message received.");
 				if (! _funcmap[message] (hwnd, message, wParam, lParam)) {
 					logp (sys::e_debug, "Error handling message: " << message << ".");
 				}
 				break;
 			case WM_TRAYICON:
+				logp (sys::e_debug, "WM_TRAYICON message received.");
 				if (lParam == WM_LBUTTONUP) {
 					_icon_click (hwnd, message, wParam, lParam);
 				} else if (lParam == WM_RBUTTONDOWN) {
@@ -194,15 +169,23 @@ namespace mcm {
 				}
 				break;
 			case WM_NCHITTEST:
+				logp (sys::e_debug, "WM_NCHITEST message received.");
 				_funcmap[message](hwnd, message, wParam, lParam);
 				break;
 			case WM_CLOSE:
+				logp (sys::e_debug, "WM_CLOSE message received.");
 				return 0;
 				break;
 			case WM_DESTROY:
+				logp (sys::e_debug, "WM_DESTROY message received.");
 				PostQuitMessage (0);
 				break;
 			case WM_SETFOCUS:
+				logp (sys::e_debug, "WM_SETFOCUS message received.");
+				break;
+			case WM_MENUSELECT:
+				logp (sys::e_debug, "WM_MENUSELECT message received.");
+				return 0;
 				break;
 			default:
 				logp (sys::e_debug, "Not handled message: " << message);

@@ -60,9 +60,13 @@
 #define logf() mcm::sys::log << "[" << __FILE__							\
 	<< ":" << __LINE__ << ": "											\
 	<< __PRETTY_FUNCTION__ << "] " << std::endl
+#define nlogp(p, str)
+#define nlogf()
 #else
 #define logp(p, str)
 #define logf()
+#define nlogp(p, str)
+#define nlogf()
 #endif
 
 const std::string FILE_NAME ("window_list.json");
@@ -132,6 +136,40 @@ namespace mcm {
 		};
 
 	} // namespace sys
+
+	class win_error
+	{
+	public:
+		win_error (const char * msg)
+			: _msg (msg)
+		{
+			_error = GetLastError();
+			FormatMessage(
+				FORMAT_MESSAGE_ALLOCATE_BUFFER |
+				FORMAT_MESSAGE_FROM_SYSTEM |
+				FORMAT_MESSAGE_IGNORE_INSERTS,
+				NULL,
+				_error,
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				(LPTSTR) &_lpMsgBuf,
+				0, NULL );
+			logp (sys::e_debug, "Error: " << (char *)_lpMsgBuf);
+		}
+		win_error & operator () ()
+		{
+			logp (sys::e_debug, _msg);
+			std::string msg{_msg};
+			msg += (char *)_lpMsgBuf;
+			FatalAppExit (0, TEXT(msg.c_str()));
+			return *this; // this will never be reached!
+		}
+	private:
+		const char * _msg;
+		DWORD _error;
+		LPVOID _lpMsgBuf;
+	};
+
+
 } // namespace mcm
 
 #endif // common_h

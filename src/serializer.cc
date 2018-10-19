@@ -62,6 +62,11 @@ namespace mcm {
 	{
 		deserializer_t des (file_name, _mapwin);
 
+		for (auto & w : _mapwin) {
+			logp (sys::e_debug, "Serializer window pre: " << w.second._deserialized
+				  << ", '" << w.second._title << "'.");
+		}
+
 		logp (sys::e_debug, "Deserializer created.");
 		if (! des) {
 			logp (sys::e_debug, "Can't operate on file.");
@@ -70,6 +75,11 @@ namespace mcm {
 		logp (sys::e_debug, "Calling deserializer to deserialize.");
 		if (! des())
 			return false;
+
+		for (auto & w : _mapwin) {
+			logp (sys::e_debug, "Serializer window after: " << w.second._deserialized
+				  << ", '" << w.second._title << "'.");
+		}
 
 		return true;
 	}

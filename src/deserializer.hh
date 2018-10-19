@@ -57,7 +57,7 @@ namespace mcm {
 		bool _good;
 		mcm::sys::file_t _in;
 		size_t _i;
-		mapwin_t _win;
+		mapwin_t & _win;
 		vecerrors_t _errors;
 		HWND _count;
 

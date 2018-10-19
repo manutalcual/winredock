@@ -31,31 +31,41 @@ namespace mcm {
 		: _good {false},
 		  _in {file_name},
 		  _i {0},
-		  _win {windows},
+		  _win (windows),
 		  _count{0}
 	{
 		_good = _in;
+		for (auto & w : _win) {
+			logp (sys::e_debug, "Deserializer window pre: "
+				  << w.second._deserialized
+				  << ", " << w.second._hwnd
+				  << ", '" << w.second._title << "'.");
+		}
 	}
 
-	bool deserializer_t::match (char c)
+	bool deserializer_t::operator () ()
 	{
-		skip_blanks ();
-		if (_in[_i] != c)
-			return false;
-
-		++_i;
-		return true;
+		nlogf ();
+		bool ret = get_windows_config();
+		for (auto & w : _win) {
+			logp (sys::e_debug, "Deserializer window after: "
+				  << w.second._deserialized
+				  << ", " << w.second._hwnd
+				  << ", '" << w.second._title << "'.");
+		}
+		return ret;
 	}
 
 	bool deserializer_t::get_windows_config ()
 	{
-		logf ();
-		return get_windows_vector();
+		nlogf ();
+		bool ret = get_windows_vector();
+		return ret;
 	}
 
 	bool deserializer_t::get_windows_vector ()
 	{
-		logf ();
+		nlogf ();
 		if (!match('[')) {
 			logp (sys::e_debug, "Syntax error, there should be an open "
 				  "quare bracket and there is a '"
@@ -69,11 +79,11 @@ namespace mcm {
 
 		if (!match(']')) {
 			do {
-				logp (sys::e_debug, "...");
+				nlogp (sys::e_debug, "...");
 				if (!get_class_entity()) {
 					return false;
 				}
-				logp (sys::e_debug, "char at pos: " << _in[_i]);
+				nlogp (sys::e_debug, "char at pos: " << _in[_i]);
 			} while (match(','));
 		}
 		if (!match(']')) {
@@ -90,7 +100,7 @@ namespace mcm {
 
 	bool deserializer_t::get_class_entity ()
 	{
-		logf ();
+		nlogf ();
 		if (! match('{')) {
 			logp (sys::e_debug, "Syntax error, there should be an open brace.");
 			_errors.push_back (std::string("Syntax error, there shoul be an "
@@ -134,7 +144,7 @@ namespace mcm {
 
 	bool deserializer_t::get_class_token ()
 	{
-		logf ();
+		nlogf ();
 		skip_blanks ();
 		std::string name = get_string();
 		if (name != c_class) {
@@ -147,7 +157,7 @@ namespace mcm {
 
 	bool deserializer_t::get_class_name ()
 	{
-		logf ();
+		nlogf ();
 		skip_blanks ();
 		std::string value = get_value(); // class name
 		_win[++_count]._class_name = value;
@@ -157,7 +167,7 @@ namespace mcm {
 
 	bool deserializer_t::get_class_data ()
 	{
-		logf ();
+		nlogf ();
 		std::string data = get_string();
 
 		if (data != c_data) {
@@ -206,12 +216,12 @@ namespace mcm {
 
 	bool deserializer_t::get_class_element ()
 	{
-		logf ();
+		nlogf ();
 		std::string name = get_string();
 		std::string value;
 
 		skip_blanks ();
-		logp (sys::e_debug, "What is there? '"
+		nlogp (sys::e_debug, "What is there? '"
 			  << _in[_i] << "'.");
 		if (!match(':')) {
 			logp (sys::e_debug, "There should be a colon and there is '"
@@ -223,7 +233,7 @@ namespace mcm {
 			return false;
 		}
 		if (!match('{')) {
-			logp (sys::e_debug, "Get class element: value");
+			nlogp (sys::e_debug, "Get class element: value");
 			skip_blanks ();
 			value = get_value();
 			if (name == c_title)
@@ -234,7 +244,7 @@ namespace mcm {
 				_win[_count]._place.showCmd = mcm::sys::atoi(value);
 
 		} else if (--_i, match('{')) {
-			logp (sys::e_debug, "Get class element: subelement");
+			nlogp (sys::e_debug, "Get class element: subelement");
 			if (!get_sub_element(name)) {
 				return false;
 			}
@@ -261,7 +271,7 @@ namespace mcm {
 
 	bool deserializer_t::get_sub_element (std::string element)
 	{
-		logf ();
+		nlogf ();
 		bool ret = false;
 
 		if (element == c_min_position) {
@@ -282,7 +292,7 @@ namespace mcm {
 
 	bool deserializer_t::get_min_position ()
 	{
-		logf ();
+		nlogf ();
 		std::string name1 = get_string();
 		match (':');
 		std::string value1 = get_value();
@@ -290,12 +300,14 @@ namespace mcm {
 		std::string name2 = get_string();
 		match (':');
 		std::string value2 = get_value();
+		_win[_count]._place.ptMinPosition.x = sys::atoi(value1);
+		_win[_count]._place.ptMinPosition.y = sys::atoi(value2);
 		return true;
 	}
 
 	bool deserializer_t::get_max_position ()
 	{
-		logf ();
+		nlogf ();
 		std::string name1 = get_string();
 		match (':');
 		std::string value1 = get_value();
@@ -303,12 +315,14 @@ namespace mcm {
 		std::string name2 = get_string();
 		match (':');
 		std::string value2 = get_value();
+		_win[_count]._place.ptMaxPosition.x = sys::atoi(value1);
+		_win[_count]._place.ptMaxPosition.y = sys::atoi(value2);
 		return true;
 	}
 
 	bool deserializer_t::get_placement ()
 	{
-		logf ();
+		nlogf ();
 		std::string name1 = get_string();
 		match (':');
 		std::string value1 = get_value();
@@ -324,25 +338,22 @@ namespace mcm {
 		std::string name4 = get_string();
 		match (':');
 		std::string value4 = get_value();
+		_win[_count]._place.rcNormalPosition.top = sys::atoi(value1);
+		_win[_count]._place.rcNormalPosition.left = sys::atoi(value2);
+		_win[_count]._place.rcNormalPosition.right = sys::atoi(value3);
+		_win[_count]._place.rcNormalPosition.bottom = sys::atoi(value4);
 		return true;
-	}
-
-	bool deserializer_t::operator () ()
-	{
-		logf ();
-
-		return get_windows_config();
 	}
 
 	std::string deserializer_t::get_value ()
 	{
-		logf ();
+		nlogf ();
 		skip_blanks ();
 		if (_in[_i] == '"') {
-			logp (sys::e_debug, "Selected 'string' to parse." << _in[_i]);
+			nlogp (sys::e_debug, "Selected 'string' to parse." << _in[_i]);
 			return get_string();
 		} else {
-			logp (sys::e_debug, "Selected 'number' to parse. " << _in[_i]);
+			nlogp (sys::e_debug, "Selected 'number' to parse. " << _in[_i]);
 			return get_number();
 		}
 		return "";
@@ -350,10 +361,10 @@ namespace mcm {
 
 	std::string deserializer_t::get_number ()
 	{
-		logf ();
+		nlogf ();
 		std::string value;
 		skip_blanks ();
-		logp (sys::e_debug, "  begin with '"
+		nlogp (sys::e_debug, "  begin with '"
 			  << _in[_i] << "'.");
 		if (_in[_i] == '-') {
 			value += '-';
@@ -361,15 +372,15 @@ namespace mcm {
 		}
 		while (::isdigit(_in[_i]))
 			value += _in[_i++];
-		logp (sys::e_debug, "  captured '"
+		nlogp (sys::e_debug, "  captured '"
 			  << value << "'.");
 		return value;
 	}
 
 	std::string deserializer_t::get_string ()
 	{
-		logf ();
-		logp (sys::e_debug, "  get string begins with: '"
+		nlogf ();
+		nlogp (sys::e_debug, "  get string begins with: '"
 			  << _in[_i] << "'.");
 		if (!match('"')) {
 			logp (sys::e_debug, "Not getting anything.");
@@ -381,7 +392,7 @@ namespace mcm {
 		if (!match ('"')) {
 			logp (sys::e_debug, "This can't happen!");
 		}
-		logp (sys::e_debug, "  captured '"
+		nlogp (sys::e_debug, "  captured '"
 			  << str << "'. (remaining char '"
 			  << _in[_i] << "')");
 		return str;
@@ -391,6 +402,16 @@ namespace mcm {
 	{
 		while (::isspace(_in[_i]))
 			++_i;
+	}
+
+	bool deserializer_t::match (char c)
+	{
+		skip_blanks ();
+		if (_in[_i] != c)
+			return false;
+
+		++_i;
+		return true;
 	}
 
 

@@ -53,7 +53,7 @@ namespace mcm {
 			  _file (::fopen(file_name.c_str(), "r")),
 			  _buf (nullptr)
 		{
-			logf ();
+			nlogf ();
 
 			if (_file == nullptr) {
 				logp (sys::e_debug, "Ca't open file.");
@@ -74,10 +74,10 @@ namespace mcm {
 			}
 			_buf[st.size()] = '\0';
 			_size = st.size();
-			logp (sys::e_debug, "Data readed: "
+			nlogp (sys::e_debug, "Data readed: "
 				  << _size << ".");
-			logp (sys::e_debug, "First char: '"
-				  << _buf[0] << "'.");
+			nlogp (sys::e_debug, "First char: '"
+				  << _buf[0] << "'."); //
 			_good = true;
 		}
 
