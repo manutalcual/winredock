@@ -340,8 +340,8 @@ namespace mcm {
 		std::string value4 = get_value();
 		_win[_count]._place.rcNormalPosition.top = sys::atoi(value1);
 		_win[_count]._place.rcNormalPosition.left = sys::atoi(value2);
-		_win[_count]._place.rcNormalPosition.right = sys::atoi(value3);
-		_win[_count]._place.rcNormalPosition.bottom = sys::atoi(value4);
+		_win[_count]._place.rcNormalPosition.bottom = sys::atoi(value3);
+		_win[_count]._place.rcNormalPosition.right = sys::atoi(value4);
 		return true;
 	}
 

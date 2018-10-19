@@ -150,7 +150,7 @@ namespace mcm {
 
 		LRESULT handle (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
-			logp (sys::e_debug, "Message received: "
+			nlogp (sys::e_debug, "Message received: "
 				  << message
 				  << "='" << get_msg(message) << "', "
 				  << wParam << ", " << lParam << "'.");
@@ -208,7 +208,7 @@ namespace mcm {
 				logp (sys::e_debug, "Not handled message: " << message);
 				break;
 			}
-			logp (sys::e_debug, "hwnd " << hwnd << ", " << message
+			nlogp (sys::e_debug, "hwnd " << hwnd << ", " << message
 				  << ", " << wParam << ", " << lParam << ".");
 			return DefWindowProc(hwnd, message, wParam, lParam);
 		}

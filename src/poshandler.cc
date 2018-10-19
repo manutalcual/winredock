@@ -120,7 +120,8 @@ namespace mcm {
 				wp.showCmd = SW_RESTORE;
 				wp.flags = WPF_ASYNCWINDOWPLACEMENT;
 				SetWindowPlacement (begin->second._hwnd, &wp);
-				ShowWindow (begin->second._hwnd, SW_RESTORE);
+				//ShowWindow (begin->second._hwnd, SW_RESTORE);
+				ShowWindow (begin->second._hwnd, SW_HIDE);
 				ShowWindow (begin->second._hwnd, SW_SHOW);
 			}
 			if (! SetWindowPlacement(begin->second._hwnd, &begin->second._place)) {
@@ -128,8 +129,8 @@ namespace mcm {
 				win_error error ("Can't reposition window.");
 			} else {
 				ShowWindow (begin->second._hwnd, SW_HIDE);
-				ShowWindow (begin->second._hwnd, SW_RESTORE);
-				//ShowWindow (begin->second._hwnd, SW_SHOW);
+				//ShowWindow (begin->second._hwnd, SW_RESTORE);
+				ShowWindow (begin->second._hwnd, SW_SHOW);
 			}
 		}
 	}
