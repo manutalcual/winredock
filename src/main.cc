@@ -42,6 +42,14 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 	logf ();
 	logp (sys::e_debu, "Creating window with class name: " << c_class_name);
 
+	mcm::sys::set_cwd changedir;
+
+	if (! changedir(mcm::sys::set_cwd::cwd::home)) {
+		FatalAppExit (0, TEXT("Can't change working dir."));
+	}
+
+	file_name  = changedir.path() + "\\" + file_name;
+
 	mcm::window<c_class_name,
 				WndProc,
 				(CS_HREDRAW | CS_VREDRAW),

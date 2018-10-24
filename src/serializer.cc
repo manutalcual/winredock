@@ -35,10 +35,19 @@ namespace mcm {
 		mapwin_t::iterator b = _mapwin.begin();
 		mapwin_t::iterator e = _mapwin.end();
 
+		if (!output) {
+			MessageBoxExW ((HWND)0, L"Can't write config. file", L"Seting working dir",
+						   MB_OK,
+						   MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL));
+			return false;
+		}
+
 		output << "[\n";
 		for ( ; b != e; ++b) {
 			if (b != _mapwin.begin())
 				output << ",\n";
+			logp (sys::e_debug, "Adding '"
+				  << b->second._class_name << "'.");
 			output << "{ \"class\" : \"" << b->second._class_name << "\",\n"
 				   << "\t\"data\" : {\n"
 				   << "\t\t\"title\" : \"" << b->second._title << "\", \n"

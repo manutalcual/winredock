@@ -41,6 +41,7 @@
 #include <fstream>
 
 #include <windows.h>
+#include <shlobj.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -133,6 +134,24 @@ namespace mcm {
 			FILE * _file;
 			size_t _size;
 			char * _buf;
+		};
+
+		class set_cwd
+		{
+		public:
+			enum cwd
+			{
+				home,
+				data
+			};
+			bool operator () (cwd type);
+			std::string path () { return _path; }
+		private:
+			char _path[MAX_PATH];
+			/*
+			  CHAR path[MAX_PATH];
+			  GetCurrentDirectory (MAX_PATH, path);
+			*/
 		};
 
 	} // namespace sys

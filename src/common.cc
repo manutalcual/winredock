@@ -86,5 +86,33 @@ namespace mcm {
 			return _buf[i];
 		}
 
+		bool set_cwd::operator () (set_cwd::cwd type)
+		{
+			DWORD flag;
+			switch (type) {
+			case home:
+				flag = CSIDL_PROFILE;
+				break;
+			case data:
+				flag = CSIDL_APPDATA;
+				break;
+			default:
+				return false;
+				break;
+			}
+
+			HRESULT result = SHGetFolderPath(NULL, flag, NULL, 0, _path);
+			if (SUCCEEDED(result)) {
+				/*
+				MessageBoxExW ((HWND)0, profilePath, L"Seting working dir",
+							   MB_OK,
+							   MAKELANGID(LANG_NEUTRAL,
+							   SUBLANG_NEUTRAL));
+				*/
+				return SetCurrentDirectory(_path);
+			}
+			return false;
+		}
+
 	} // namespace sys
 } // namespace mcm
