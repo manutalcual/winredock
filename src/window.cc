@@ -344,4 +344,10 @@ namespace mcm {
 		return text;
 	}
 
+	void Timerproc (HWND Arg1, UINT Arg2, UINT_PTR Arg3, DWORD Arg4)
+	{
+		logp (sys::e_debug, "Timerproc called.");
+	}
+
+
 } // namespace mcm

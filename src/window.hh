@@ -22,11 +22,19 @@
 //
 #ifndef window_h
 #define window_h
+
 #include <functional>
 #include <map>
+
 #include "resource.h"
 #include "common.hh"
-#include "window.hh"
+
+#include <winuser.h>
+#include <dbt.h>
+#include <cfgmgr32.h>
+
+#include "dev.hh"
+#include "poshandler.hh"
 
 namespace mcm {
 
@@ -35,6 +43,10 @@ namespace mcm {
 	extern Func noop; // = [](HWND, UINT, WPARAM, LPARAM) -> DWORD
 
 	const char * get_msg (UINT msg);
+
+	//TIMERPROC Timerproc;
+
+	void Timerproc (HWND Arg1, UINT Arg2, UINT_PTR Arg3, DWORD Arg4);
 
 	template<const char * ClassName,
 			 FuncProc WndProc,
@@ -69,7 +81,9 @@ namespace mcm {
 			  _taskbar_created_msg{0},
 			  _menu{0},
 			  _notify_icon_data{0},
-			  _ready{false}
+			  _ready{false},
+			  _timer (0),
+			  _changing_resolution (false)
 		{
 			logf ();
 			_class.lpszClassName = ClassName;
@@ -100,6 +114,16 @@ namespace mcm {
 			logf ();
 			if( !IsWindowVisible(_hwnd)) {
 				Shell_NotifyIcon (NIM_DELETE, &_notify_icon_data);
+			}
+			if (KillTimer(_hwnd, 1)) {
+				logp (sys::e_debug, "Timer killed.");
+			} else {
+				logp (sys::e_debug, "Can't kill timer.");
+				if (KillTimer(_hwnd, _timer)) {
+					logp (sys::e_debug, "Second try killing the timer failed also.");
+				} else {
+					logp (sys::e_debug, "Timer killed on second try.");
+				}
 			}
 		}
 
@@ -148,12 +172,36 @@ namespace mcm {
 			return *this;
 		}
 
+		void register_all_guids ()
+		{
+			CONFIGRET ret;
+
+			logp (sys::e_debug, "Eumerate GUIDs.");
+			for (size_t i = 0; ret != CR_NO_SUCH_VALUE; ++i) {
+				GUID guid;
+				ret = CM_Enumerate_Classes(i,
+										   &guid,
+										   0);
+				if (ret != CR_NO_SUCH_VALUE) {
+					nlogp (sys::e_debug, "Registering for GUID: " << mcm::guid_to_string(&guid));
+					register_notification (&guid);
+				}
+			}
+			_timer = SetTimer (_hwnd, 1, 1000, (TIMERPROC)NULL);
+			if (! _timer) {
+				logp (sys::e_debug, "Can't create timer.");
+			} else {
+				logp (sys::e_debug, "Timer created: "
+					  << _timer);
+			}
+		}
+
 		LRESULT handle (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			nlogp (sys::e_debug, "Message received: "
-				  << message
-				  << "='" << get_msg(message) << "', "
-				  << wParam << ", " << lParam << "'.");
+				   << message
+				   << "='" << get_msg(message) << "', "
+				   << wParam << ", " << lParam << "'.");
 
 			switch (message) {
 			case WM_NULL:
@@ -176,10 +224,10 @@ namespace mcm {
 			case WM_COMMAND:
 				logp (sys::e_debug, "WM_COMMAND message received.");
 				break;
-			case WM_TRAYICON:
-				logp (sys::e_debug, "WM_TRAYICON message received.");
+			case WM_TRAYICON:	//
+				nlogp (sys::e_debug, "WM_TRAYICON message received.");
 				if (lParam == WM_LBUTTONUP) {
-					_icon_click (hwnd, message, wParam, lParam);
+					_icon_click (hwnd, message, wParam, lParam); //
 				} else if (lParam == WM_RBUTTONDOWN) {
 					_funcmap[_funcmap[message](hwnd, message, wParam, lParam)]
 						(hwnd, message, wParam, lParam);
@@ -191,6 +239,11 @@ namespace mcm {
 				break;
 			case WM_CLOSE:
 				logp (sys::e_debug, "WM_CLOSE message received.");
+				if (_hdev_notify) {
+					if (! UnregisterDeviceNotification(_hdev_notify)) {
+						logp (sys::e_deug, "UnregisterDeviceNotification failed");
+					}
+				}
 				return 0;
 				break;
 			case WM_DESTROY:
@@ -204,12 +257,65 @@ namespace mcm {
 				logp (sys::e_debug, "WM_MENUSELECT message received.");
 				return 0;
 				break;
+			case WM_TIMER: {
+				logp (sys::e_debug, "Receive WM_TIMER event.");
+				if (!_changing_resolution) {
+					_ptr_positioner->get_windows ();
+					dev d;
+					d.print ();
+				}
+				return 0;
+			}
+				break;
+			case WM_DISPLAYCHANGE:
+				break;
+			case WM_DEVICECHANGE: {
+				logp (sys::e_debug, "WM_DEVICECHAGE received!!!!");
+				PDEV_BROADCAST_DEVICEINTERFACE b = (PDEV_BROADCAST_DEVICEINTERFACE) lParam;
+
+				// Output some messages to the window.
+				switch (wParam)
+				{
+				case DBT_DEVICEARRIVAL:
+					logp(sys::e_debug, "Message: DBT_DEVICEARRIVAL");
+					break;
+				case DBT_DEVICEREMOVECOMPLETE:
+					logp(sys::e_debug, "Message: DBT_DEVICEREMOVECOMPLETE");
+					break;
+				case DBT_DEVNODES_CHANGED: {
+					logp(sys::e_debug, "Message: DBT_DEVNODES_CHANGED");
+					dev d;
+					logp (sys::e_debug, "Screen size...");
+					_screen_size.print ();
+					logp (sys::e_debug, "New screen...");
+					d.print ();
+					logp (sys::e_debug, "Last screen...");
+					_last_screen.print ();
+					if (d < _screen_size) {
+						logp (sys::e_debug, "Decreasing resolution.");
+						_changing_resolution = true;
+						_last_screen = d;
+					} else if (d > _last_screen) {
+						logp (sys::e_debug,
+							  "Repositioning windows because screen increased or was restored.");
+						_ptr_positioner->reposition ();
+						_last_screen = d;
+						_changing_resolution = false;
+					}
+				}
+					break;
+				default:
+					logp(sys::e_debug, "Message " << wParam << " unhandled: WM_DEVICECHANGE");
+					break;
+				}
+			}
+				break;
 			default:
-				logp (sys::e_debug, "Not handled message: " << message);
+				nlogp (sys::e_debug, "Not handled message: " << message);
 				break;
 			}
 			nlogp (sys::e_debug, "hwnd " << hwnd << ", " << message
-				  << ", " << wParam << ", " << lParam << ".");
+				   << ", " << wParam << ", " << lParam << ".");
 			return DefWindowProc(hwnd, message, wParam, lParam);
 		}
 
@@ -266,10 +372,17 @@ namespace mcm {
 		{
 			MSG msg;
 			while (GetMessage (&msg, NULL, 0, 0)) {
+				if (msg.message == WM_TIMER) {
+					msg.hwnd = _hwnd;
+				}
 				TranslateMessage (&msg);
 				DispatchMessage (&msg);
 			}
 			return msg.wParam;
+		}
+		void set_positioner (mcm::poshandler * pos)
+		{
+			_ptr_positioner = pos;
 		}
 	private:
 		WNDCLASSEX _class;
@@ -284,6 +397,39 @@ namespace mcm {
 		bool _ready;
 		Func _icon_click;
 		std::map<DWORD, callable> _funcmap;
+		HDEVNOTIFY _hdev_notify;
+		dev _screen_size;
+		dev _last_screen;
+		mcm::poshandler * _ptr_positioner;
+		UINT_PTR _timer;
+		bool _changing_resolution;
+
+		bool register_notification (GUID * guid)
+		{
+			DEV_BROADCAST_DEVICEINTERFACE NotificationFilter;
+
+			ZeroMemory (&NotificationFilter, sizeof(NotificationFilter));
+			// sizeof(DEV_BROADCAST_HDR);
+			NotificationFilter.dbcc_size = sizeof(DEV_BROADCAST_DEVICEINTERFACE);
+			NotificationFilter.dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE;
+			//NotificationFilter.dbcc_devicetype = DBT_DEVTYP_HANDLE;
+			NotificationFilter.dbcc_classguid = *guid;
+
+			_hdev_notify = RegisterDeviceNotification(
+				_hwnd,                       // events recipient
+				&NotificationFilter,        // type of device
+				DEVICE_NOTIFY_WINDOW_HANDLE // type of recipient handle
+				);
+
+			if (NULL == _hdev_notify)
+			{
+				logp (sys::e_debug, "Register notification failed for GUID: "
+					  << mcm::guid_to_string(guid));
+				return FALSE;
+			}
+			return true;
+		}
+
 	};
 
 } // namespace mcm

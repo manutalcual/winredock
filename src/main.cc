@@ -24,6 +24,7 @@
 // Includes
 //
 #include "main.hh"
+#include "dev.hh"
 
 const char c_class_name[] = "WinReDock";
 const char c_window_title[] = "WinReDock - restore windows to pre-undock positions";
@@ -56,6 +57,9 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 				c_window_title>
 		app (hInstance, hPrevInstance, args, iCmdShow);
 	g_app = &app; // for WndProc
+
+	// Let the app window reposition other windows
+	app.set_positioner (&positioner);
 
 	app[WM_CREATE] =
 		[&app](HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
@@ -99,7 +103,8 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 								   logp (sys::e_debug, "Calling to exit app.");
 								   PostQuitMessage (0) ;
 								   return app; // this should never be reached
-							   });
+							   })
+				.register_all_guids ();
 			return app;
 		};
 
@@ -164,11 +169,11 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 
 LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	logp (sys::e_debug, "Message received: "
+	nlogp (sys::e_debug, "Message received: "
 		  << message << ", "
 		  << wParam << ", " << lParam << "'.");
 	LRESULT r = g_app->handle (hwnd, message, wParam, lParam);
-	logp (sys::e_debug, "Return from handled: "
+	nlogp (sys::e_debug, "Return from handled: "
 		  << r);
 	return r;
 }

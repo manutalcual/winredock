@@ -24,6 +24,7 @@
 #define poshandler_hh
 #include "common.hh"
 #include "serializer.hh"
+#include "dev.hh"
 
 BOOL is_alt_tab_window (HWND hwnd);
 BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam);
@@ -44,7 +45,9 @@ namespace mcm {
 		static bool get_window_placement (HWND hwnd, WINDOWPLACEMENT & place);
 
 	private:
+		volatile bool _clearing;
 		mapwin_t & _windows;
+		dev _screen_size;
 	};
 } // namespace mcm
 #endif // posthandler_hh

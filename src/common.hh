@@ -188,6 +188,7 @@ namespace mcm {
 		LPVOID _lpMsgBuf;
 	};
 
+	std::string guid_to_string (GUID * guid);
 
 } // namespace mcm
 

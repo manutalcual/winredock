@@ -55,7 +55,7 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 		if (mcm::poshandler::discard_window_app_frame((const char *)class_name,
 													  ::strlen(class_name)))
 		{
-			return TRUE;
+			//return TRUE;
 		}
 
 		win_t win;
@@ -65,7 +65,7 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
         GetWindowTextA(hwnd, buf, ARRAYSIZE(buf));
 		win._title = buf;
 		win._class_name = class_name;
-		logp (sys::e_debug, "Adding window with class '" << class_name << "'.");
+		nlogp (sys::e_debug, "Adding window with class '" << class_name << "'.");
 		mcm::poshandler::get_window_placement (hwnd, win._place);
 		windows[win._hwnd] = win;
 		//show_status (win._place.showCmd);
@@ -77,16 +77,25 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 namespace mcm {
 
 	poshandler::poshandler (mapwin_t & windows)
-		: _windows (windows)
+		: _clearing (false),
+		  _windows (windows)
 	{
 		EnumWindows (&Enum, (LPARAM)&_windows);
 	}
 
 	void poshandler::get_windows ()
 	{
-		_windows.clear ();
-		// Get windows opened
-		EnumWindows (&Enum, (LPARAM)&_windows);
+		dev screen;
+		if (screen >= _screen_size) {
+			if (_clearing)
+				return;
+			logp (sys::e_debug, "Getting current desktop windows.");
+			_clearing = true;
+			_windows.clear ();
+			// Get windows opened
+			EnumWindows (&Enum, (LPARAM)&_windows);
+			_clearing = false;
+		}
 	}
 
 	void poshandler::save_configuration (std::string file_name)
@@ -97,6 +106,8 @@ namespace mcm {
 
 	void poshandler::load_configuration (std::string file_name)
 	{
+		if (_clearing)
+			return;
 		serializer serial (_windows);
 		if (!serial.deserialize(file_name)) {
 			logp (sys::e_debug, "Ouch! Deserializer failed!");
@@ -110,6 +121,11 @@ namespace mcm {
 
 	void poshandler::reposition ()
 	{
+		if (_clearing) {
+			while (_clearing)
+				;
+		}
+		logp (sys::e_debug, "Repositioning.");
 		mapwin_t::iterator begin = _windows.begin();
 		mapwin_t::iterator end = _windows.end();
 		for (; begin != end; ++begin) {
@@ -137,6 +153,9 @@ namespace mcm {
 
 	void poshandler::uniform_windows ()
 	{
+		if (_clearing)
+			return;
+
 		for (auto & item : _windows) {
 			logp (sys::e_debug, "The window is: "
 				  << item.second._hwnd << ", "
