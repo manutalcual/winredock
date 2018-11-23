@@ -24,17 +24,24 @@
 #define dev_hh
 #include "common.hh"
 
+bool get_enum_monitors (HMONITOR mon, HDC hdc, LPRECT rect, LPARAM data);
 
 class dev
 {
 public:
 	dev ()
+		: _monitors (0),
+		  _right (0),
+		  _bottom (0)
 	{
 		read ();
+		if (_monitors == 1)
+			enum_monitors ();
 	}
 	void read ()
 	{
 		RECT desktop;
+		_monitors = GetSystemMetrics(SM_CMONITORS);
 		// Get a handle to the desktop window
 		const HWND hDesktop = GetDesktopWindow();
 		// Get the size of screen to the variable desktop
@@ -44,11 +51,14 @@ public:
 		// (horizontal, vertical)
 		_right = desktop.right;
 		_bottom = desktop.bottom;
+		if (_monitors == 1)
+			enum_monitors ();
 	}
 	void print ()
 	{
 		logp (sys::e_debug, "[dev] Screen: "
-			  << _right << ", " << _bottom);
+			  << _right << ", " << _bottom
+			  << " (mon " << _monitors << ")");
 	}
 	void operator = (const dev & d)
 	{
@@ -57,36 +67,47 @@ public:
 	}
 	operator == (const dev & d)
 	{
-		return _right == d._right && _bottom == d._bottom;
+		return _monitors == d._monitors;
 	}
 	operator != (const dev & d)
 	{
-		return _right != d._right && _bottom != d._bottom;
+		return _monitors != d._monitors;
 	}
  	operator < (const dev & d)
 	{
-		bool minor = _right < d._right && _bottom < d._bottom;
-		return minor;
+		return _monitors < d._monitors;
 	}
  	operator <= (const dev & d)
 	{
-		bool minor = _right <= d._right && _bottom <= d._bottom;
-		return minor;
+		return _monitors <= d._monitors;
 	}
  	operator > (const dev & d)
 	{
-		bool greater = _right > d._right && _bottom > d._bottom;
-		return greater;
+		return _monitors > d._monitors;
 	}
  	operator >= (const dev & d)
 	{
-		bool greater = _right >= d._right && _bottom >= d._bottom;
-		return greater;
+		return _monitors >= d._monitors;
+	}
+	void enum_monitors ()
+	{
+		EnumDisplayMonitors(
+			NULL,
+			NULL,
+			(MONITORENUMPROC)get_enum_monitors,
+			(LPARAM) this
+			);
+	}
+	void add_monitor_count ()
+	{
+		++_monitors;
 	}
 private:
+	int _monitors;
 	size_t _right;
 	size_t _bottom;
 
 };
+
 
 #endif // dev_hh

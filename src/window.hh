@@ -83,7 +83,8 @@ namespace mcm {
 			  _notify_icon_data{0},
 			  _ready{false},
 			  _timer (0),
-			  _changing_resolution (false)
+			  _changing_resolution (false),
+			  _repositioned (true)
 		{
 			logf ();
 			_class.lpszClassName = ClassName;
@@ -259,11 +260,34 @@ namespace mcm {
 				break;
 			case WM_TIMER: {
 				logp (sys::e_debug, "Receive WM_TIMER event.");
+				dev d;
+				d.print ();
+				if (d < _screen_size) {
+					logp (sys::e_debug, "Decreasing resolution.");
+					_changing_resolution = true;
+					_last_screen = d;
+					_repositioned = false;
+				} else if (d == _screen_size && !_repositioned) {
+					logp (sys::e_debug,
+						  "Repositioning windows because screen increased or was restored.");
+					_ptr_positioner->reposition ();
+					_last_screen = d;
+					_changing_resolution = false;
+					_repositioned = true;
+				} else if (d > _screen_size) {
+					logp (sys::e_debug, "Taking note of a greater new desktop.");
+					_screen_size = d;
+					_ptr_positioner->get_windows ();
+				} else {
+					_ptr_positioner->get_windows ();
+				}
+				/*
 				if (!_changing_resolution) {
 					_ptr_positioner->get_windows ();
 					dev d;
 					d.print ();
 				}
+				*/
 				return 0;
 			}
 				break;
@@ -295,12 +319,16 @@ namespace mcm {
 						logp (sys::e_debug, "Decreasing resolution.");
 						_changing_resolution = true;
 						_last_screen = d;
-					} else if (d > _last_screen) {
+						_repositioned = false;
+					} else if (d == _screen_size && !_repositioned) {
 						logp (sys::e_debug,
 							  "Repositioning windows because screen increased or was restored.");
 						_ptr_positioner->reposition ();
 						_last_screen = d;
 						_changing_resolution = false;
+					} else if (d > _screen_size) {
+						_screen_size = d;
+						_ptr_positioner->get_windows ();
 					}
 				}
 					break;
@@ -403,6 +431,7 @@ namespace mcm {
 		mcm::poshandler * _ptr_positioner;
 		UINT_PTR _timer;
 		bool _changing_resolution;
+		bool _repositioned;
 
 		bool register_notification (GUID * guid)
 		{
