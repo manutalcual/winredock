@@ -77,6 +77,7 @@ class win_t
 public:
 	HWND _hwnd;
 	WINDOWPLACEMENT _place;
+	HMONITOR _hmon;
 	bool _deserialized;
 	std::string _title;
 	std::string _class_name;

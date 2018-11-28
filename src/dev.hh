@@ -51,12 +51,22 @@ public:
 		// (horizontal, vertical)
 		_right = desktop.right;
 		_bottom = desktop.bottom;
+		// SM_CYVIRTUALSCREEN
+		// SM_CXVIRTUALSCREEN
+		_width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+		_height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 		if (_monitors == 1)
 			enum_monitors ();
+		logp (sys::e_debug, "Metrics: width: " << _width
+			  << ", height: " << _height
+			  << ", right: " << _right
+			  << ", bottom: " << _bottom
+			  << ", monitors: " << _monitors);
 	}
 	void print ()
 	{
 		logp (sys::e_debug, "[dev] Screen: "
+			  << _width << ", " << _height << ", "
 			  << _right << ", " << _bottom
 			  << " (mon " << _monitors << ")");
 	}
@@ -83,7 +93,7 @@ public:
 	}
  	operator > (const dev & d)
 	{
-		return _monitors > d._monitors;
+		return _monitors > d._monitors and (_width > d._width or _height > d._height);
 	}
  	operator >= (const dev & d)
 	{
@@ -104,6 +114,8 @@ public:
 	}
 private:
 	int _monitors;
+	size_t _width;
+	size_t _height;
 	size_t _right;
 	size_t _bottom;
 

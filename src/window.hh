@@ -258,6 +258,8 @@ namespace mcm {
 				logp (sys::e_debug, "WM_MENUSELECT message received.");
 				return 0;
 				break;
+			case WM_DISPLAYCHANGE:
+				break;
 			case WM_TIMER: {
 				logp (sys::e_debug, "Receive WM_TIMER event.");
 				dev d;
@@ -278,23 +280,17 @@ namespace mcm {
 					logp (sys::e_debug, "Taking note of a greater new desktop.");
 					_screen_size = d;
 					_ptr_positioner->get_windows ();
-				} else {
-					_ptr_positioner->get_windows ();
 				}
-				/*
 				if (!_changing_resolution) {
 					_ptr_positioner->get_windows ();
 					dev d;
 					d.print ();
 				}
-				*/
 				return 0;
 			}
 				break;
-			case WM_DISPLAYCHANGE:
-				break;
 			case WM_DEVICECHANGE: {
-				logp (sys::e_debug, "WM_DEVICECHAGE received!!!!");
+				logp (sys::e_debug, "WM_DEVICECHANGE received!!!!");
 				PDEV_BROADCAST_DEVICEINTERFACE b = (PDEV_BROADCAST_DEVICEINTERFACE) lParam;
 
 				// Output some messages to the window.
@@ -309,9 +305,9 @@ namespace mcm {
 				case DBT_DEVNODES_CHANGED: {
 					logp(sys::e_debug, "Message: DBT_DEVNODES_CHANGED");
 					dev d;
-					logp (sys::e_debug, "Screen size...");
+					logp (sys::e_debug, "Current reference screen size...");
 					_screen_size.print ();
-					logp (sys::e_debug, "New screen...");
+					logp (sys::e_debug, "New screen size...");
 					d.print ();
 					logp (sys::e_debug, "Last screen...");
 					_last_screen.print ();
