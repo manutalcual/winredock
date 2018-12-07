@@ -38,6 +38,13 @@ namespace mcm {
 			return num;
 		}
 
+		std::string itoa (int i)
+		{
+			char buf[124];
+			::sprintf (buf, "%d", i);
+			return buf;
+		}
+
 		stat_t::stat_t (std::string file_name)
 			: _good (::stat(file_name.c_str(), &_st) == 0)
 		{

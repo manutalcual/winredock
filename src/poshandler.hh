@@ -33,7 +33,7 @@ namespace mcm {
 	class poshandler
 	{
 	public:
-		poshandler (mapwin_t & windows);
+		poshandler ();
 		void reposition ();
 		void get_windows ();
 		void save_configuration (std::string file_name);
@@ -46,7 +46,7 @@ namespace mcm {
 
 	private:
 		volatile bool _clearing;
-		mapwin_t & _windows;
+		mapwin_t _windows;
 		dev _screen_size;
 	};
 } // namespace mcm

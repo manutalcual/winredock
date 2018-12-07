@@ -209,12 +209,25 @@ namespace mcm {
 				logp (sys::e_debug, "Null message received.");
 				return 0;
 				break;
-			case WM_CREATE:
+			case WM_CREATE: {
 				logp (sys::e_debug, "WM_CREATE message received.");
+				logp (sys::e_debug, "Capturing initial configuration.");
+				dev d;
+				std::string config_name = sys::itoa(d.width());
+				config_name += "_";
+				config_name += sys::itoa(d.height());
+				config_name += "_";
+				config_name += sys::itoa(d.monitors());
+				logp (sys::e_debug, "** Initial configuration name: '"
+					  << config_name << "'.");
+				_repos[config_name].get_windows ();
+				_last_screen = d;
+				logp (sys::e_debug, "--------------------------------");
 				_ready = true;
 				if (! _funcmap[message] (hwnd, message, wParam, lParam)) {
 					logp (sys::e_debug, "Error handling message: " << message << ".");
 				}
+			}
 				break;
 			case WM_SYSCOMMAND:
 				logp (sys::e_debug, "WM_SYSCOMMAND message received.");
@@ -262,37 +275,58 @@ namespace mcm {
 				break;
 			case WM_TIMER: {
 				logp (sys::e_debug, "Receive WM_TIMER event.");
+				logp (sys::e_debug, "Actual screen: ");
 				dev d;
-				d.print ();
-				if (d < _screen_size) {
-					logp (sys::e_debug, "Decreasing resolution.");
-					_changing_resolution = true;
-					_last_screen = d;
-					_repositioned = false;
-				} else if (d == _screen_size && !_repositioned) {
-					logp (sys::e_debug,
-						  "Repositioning windows because screen increased or was restored.");
-					_ptr_positioner->reposition ();
-					_last_screen = d;
+				logp (sys:::e_debug, "Last screen: ");
+				_last_screen.print ();
+				if (d != _last_screen && _changing_resolution) {
+					logp (sys::e_debug, "Changing resolution.");
+					std::string config_name = sys::itoa(d.width());
+					config_name += "_";
+					config_name += sys::itoa(d.height());
+					config_name += "_";
+					config_name += sys::itoa(d.monitors());
+					if (_repos.find(config_name) != _repos.end()) {
+						logp (sys::e_debug, "Repositioning windows: '"
+							  << config_name << "'.");
+						_repos[config_name].reposition ();
+					} else {
+						logp (sys::e_debug, "Getting new configuration: '"
+							  << config_name << "'.");
+						_repos[config_name].get_windows ();
+					}
 					_changing_resolution = false;
-					_repositioned = true;
-				} else if (d > _screen_size) {
-					logp (sys::e_debug, "Taking note of a greater new desktop.");
+					_last_screen = d;
 					_screen_size = d;
-					_ptr_positioner->get_windows ();
-				}
-				if (!_changing_resolution) {
-					_ptr_positioner->get_windows ();
-					dev d;
-					d.print ();
+					logp (sys::e_debug, "Last screen set to: ");
+					_last_screen.print ();
+				} else if (d == _last_screen & !_changing_resolution) {
+					std::string config_name = sys::itoa(d.width());
+					config_name += "_";
+					config_name += sys::itoa(d.height());
+					config_name += "_";
+					config_name += sys::itoa(d.monitors());
+					logp (sys::e_debug, "Getting configuration: '"
+						  << config_name << "'.");
+					_repos[config_name].get_windows ();
+					_last_screen = d;
+				} else if (d == _screen_size && _changing_resolution) {
+					std::string config_name = sys::itoa(d.width());
+					config_name += "_";
+					config_name += sys::itoa(d.height());
+					config_name += "_";
+					config_name += sys::itoa(d.monitors());
+					logp (sys::e_debug,
+						  "Getting configuration with spurious device notification: '"
+						  << config_name << "'.");
+					_repos[config_name].get_windows ();
+					_last_screen = d;
 				}
 				return 0;
 			}
 				break;
 			case WM_DEVICECHANGE: {
 				logp (sys::e_debug, "WM_DEVICECHANGE received!!!!");
-				PDEV_BROADCAST_DEVICEINTERFACE b = (PDEV_BROADCAST_DEVICEINTERFACE) lParam;
-
 				// Output some messages to the window.
 				switch (wParam)
 				{
@@ -303,29 +337,45 @@ namespace mcm {
 					logp(sys::e_debug, "Message: DBT_DEVICEREMOVECOMPLETE");
 					break;
 				case DBT_DEVNODES_CHANGED: {
+					logp (sys::e_debug, "Changing resolution...");
+					_changing_resolution = true;
+					PDEV_BROADCAST_DEVICEINTERFACE b = (PDEV_BROADCAST_DEVICEINTERFACE) lParam;
+					if (b) {
+						logp (sys::e_debug, "Device param size: " << b->dbcc_size << ", "
+							  << sizeof(DEV_BROADCAST_DEVICEINTERFACE));
+						if (sizeof(*b) > sizeof(DEV_BROADCAST_DEVICEINTERFACE))
+							logp (sys::e_debug, "Device name: " << b->dbcc_name);
+						else
+							logp (sys::e_debug, "Unkown device param type.");
+					} else {
+						logp (sys::e_debug, "There is no param!");
+					}
+					/*
 					logp(sys::e_debug, "Message: DBT_DEVNODES_CHANGED");
+					logp (sys::e_debug, "New screen size...");
 					dev d;
 					logp (sys::e_debug, "Current reference screen size...");
 					_screen_size.print ();
-					logp (sys::e_debug, "New screen size...");
-					d.print ();
 					logp (sys::e_debug, "Last screen...");
 					_last_screen.print ();
-					if (d < _screen_size) {
-						logp (sys::e_debug, "Decreasing resolution.");
-						_changing_resolution = true;
-						_last_screen = d;
-						_repositioned = false;
-					} else if (d == _screen_size && !_repositioned) {
+					if (d != _last_screen) {
 						logp (sys::e_debug,
 							  "Repositioning windows because screen increased or was restored.");
-						_ptr_positioner->reposition ();
+						std::string config_name = sys::itoa(d.width());
+						config_name += "_";
+						config_name += sys::itoa(d.height());
+						config_name += "_";
+						config_name += sys::itoa(d.monitors());
+						if (_repos.find(config_name) != _repos.end()) {
+							logp (sys::e_debug, "Repositioning windows.");
+							_repos[config_name].reposition ();
+						} else {
+							logp (sys::e_debug, "Getting new configuration.");
+							_repos[config_name].get_windows ();
+						}
 						_last_screen = d;
-						_changing_resolution = false;
-					} else if (d > _screen_size) {
-						_screen_size = d;
-						_ptr_positioner->get_windows ();
 					}
+					*/
 				}
 					break;
 				default:
@@ -404,11 +454,8 @@ namespace mcm {
 			}
 			return msg.wParam;
 		}
-		void set_positioner (mcm::poshandler * pos)
-		{
-			_ptr_positioner = pos;
-		}
 	private:
+		typedef std::map<std::string, mcm::poshandler> maprepohandlers_t;
 		WNDCLASSEX _class;
 		HINSTANCE _instance;
 		HINSTANCE _previous;
@@ -424,10 +471,10 @@ namespace mcm {
 		HDEVNOTIFY _hdev_notify;
 		dev _screen_size;
 		dev _last_screen;
-		mcm::poshandler * _ptr_positioner;
 		UINT_PTR _timer;
 		bool _changing_resolution;
 		bool _repositioned;
+		maprepohandlers_t _repos;
 
 		bool register_notification (GUID * guid)
 		{
@@ -443,7 +490,9 @@ namespace mcm {
 			_hdev_notify = RegisterDeviceNotification(
 				_hwnd,                       // events recipient
 				&NotificationFilter,        // type of device
-				DEVICE_NOTIFY_WINDOW_HANDLE // type of recipient handle
+				DEVICE_NOTIFY_WINDOW_HANDLE // type of recipient
+											// handle
+				| DEVICE_NOTIFY_ALL_INTERFACE_CLASSES
 				);
 
 			if (NULL == _hdev_notify)

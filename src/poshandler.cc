@@ -82,10 +82,10 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 
 namespace mcm {
 
-	poshandler::poshandler (mapwin_t & windows)
-		: _clearing (false),
-		  _windows (windows)
+	poshandler::poshandler ()
+		: _clearing (false)
 	{
+		logf ();
 		EnumWindows (&Enum, (LPARAM)&_windows);
 	}
 
@@ -135,12 +135,12 @@ namespace mcm {
 		mapwin_t::iterator begin = _windows.begin();
 		mapwin_t::iterator end = _windows.end();
 		for (; begin != end; ++begin) {
-			logp (sys::e_debug, "Setting placement for '<anonymized>': "
+			logp (sys::e_debug, "Setting placement for '"
+				  << begin->second._class_name << "': "
 				  << ", top " << begin->second._place.rcNormalPosition.top
 				  << ", left " << begin->second._place.rcNormalPosition.left
 				  << ", right " << begin->second._place.rcNormalPosition.right
-				  << ", bottom " << begin->second._place.rcNormalPosition.bottom
-			);
+				  << ", bottom " << begin->second._place.rcNormalPosition.bottom);
 			if (begin->second._place.showCmd == SW_MAXIMIZE) {
 				WINDOWPLACEMENT wp = begin->second._place;
 				wp.showCmd = SW_RESTORE;

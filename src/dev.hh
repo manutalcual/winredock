@@ -35,13 +35,11 @@ public:
 		  _bottom (0)
 	{
 		read ();
-		if (_monitors == 1)
-			enum_monitors ();
 	}
 	void read ()
 	{
 		RECT desktop;
-		_monitors = GetSystemMetrics(SM_CMONITORS);
+		//_monitors = GetSystemMetrics(SM_CMONITORS);
 		// Get a handle to the desktop window
 		const HWND hDesktop = GetDesktopWindow();
 		// Get the size of screen to the variable desktop
@@ -55,9 +53,9 @@ public:
 		// SM_CXVIRTUALSCREEN
 		_width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
 		_height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-		if (_monitors == 1)
+		if (_monitors == 0)
 			enum_monitors ();
-		logp (sys::e_debug, "Metrics: width: " << _width
+		logp (sys::e_debug, "Metrics [read]: width: " << _width
 			  << ", height: " << _height
 			  << ", right: " << _right
 			  << ", bottom: " << _bottom
@@ -65,13 +63,29 @@ public:
 	}
 	void print ()
 	{
-		logp (sys::e_debug, "[dev] Screen: "
-			  << _width << ", " << _height << ", "
-			  << _right << ", " << _bottom
-			  << " (mon " << _monitors << ")");
+		logp (sys::e_debug, "Metrics [print]: width: " << _width
+			  << ", height: " << _height
+			  << ", right: " << _right
+			  << ", bottom: " << _bottom
+			  << ", monitors: " << _monitors);
+	}
+	size_t width ()
+	{
+		return _width;
+	}
+	size_t height ()
+	{
+		return _height;
+	}
+	size_t monitors ()
+	{
+		return _monitors;
 	}
 	void operator = (const dev & d)
 	{
+		_monitors = d._monitors;
+		_width = d._width;
+		_height = d._height;
 		_right = d._right;
 		_bottom = d._bottom;
 	}

@@ -35,8 +35,6 @@ mcm::window<c_class_name,
 			c_window_title> * g_app = nullptr;
 
 std::string file_name{"window_list.json"};
-mapwin_t windows;
-mcm::poshandler positioner (windows);
 
 int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, int iCmdShow )
 {
@@ -58,16 +56,13 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 		app (hInstance, hPrevInstance, args, iCmdShow);
 	g_app = &app; // for WndProc
 
-	// Let the app window reposition other windows
-	app.set_positioner (&positioner);
-
 	app[WM_CREATE] =
 		[&app](HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 			logf ();
 			app.create_menu (
 				// Context left click function
 				[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-					positioner.reposition ();
+					//positioner.reposition ();
 					return app;
 				}) // Context menus and functions
 				.add_menu_item(MF_STRING,
@@ -75,7 +70,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 							   TEXT("Get windows"),
 							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 								   logp (sys::e_debug, "Call to load windows.");
-								   positioner.get_windows ();
+								   //positioner.get_windows ();
 								   return app;
 							   })
 				.add_menu_item(MF_STRING,
@@ -83,7 +78,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 							   TEXT("Save config."),
 							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 								   logp (sys::e_debug, "Calling to serialize data.");
-								   positioner.save_configuration (file_name);
+								   //positioner.save_configuration (file_name);
 								   logp (sys::e_debug, "Ok. Done.");
 								   return app;
 							   })
@@ -92,7 +87,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 							   TEXT("Read config."),
 							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 								   logp (sys::e_debug, "Calling to read file.");
-								   positioner.load_configuration (file_name);
+								   //positioner.load_configuration (file_name);
 								   return app;
 							   })
 				.add_menu_item(MF_SEPARATOR, 0, NULL)
