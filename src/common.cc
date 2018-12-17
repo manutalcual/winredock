@@ -108,7 +108,7 @@ namespace mcm {
 				break;
 			}
 
-			HRESULT result = SHGetFolderPath(NULL, flag, NULL, 0, _path);
+			HRESULT result = SHGetFolderPathA(NULL, flag, NULL, 0, _path);
 			if (SUCCEEDED(result)) {
 				/*
 				MessageBoxExW ((HWND)0, profilePath, L"Seting working dir",
@@ -116,7 +116,7 @@ namespace mcm {
 							   MAKELANGID(LANG_NEUTRAL,
 							   SUBLANG_NEUTRAL));
 				*/
-				return SetCurrentDirectory(_path);
+				return SetCurrentDirectoryA(_path);
 			}
 			return false;
 		}

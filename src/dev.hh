@@ -89,27 +89,27 @@ public:
 		_right = d._right;
 		_bottom = d._bottom;
 	}
-	operator == (const dev & d)
+	bool operator == (const dev & d)
 	{
 		return _monitors == d._monitors;
 	}
-	operator != (const dev & d)
+	bool operator != (const dev & d)
 	{
 		return _monitors != d._monitors;
 	}
- 	operator < (const dev & d)
+ 	bool operator < (const dev & d)
 	{
 		return _monitors < d._monitors;
 	}
- 	operator <= (const dev & d)
+ 	bool operator <= (const dev & d)
 	{
 		return _monitors <= d._monitors;
 	}
- 	operator > (const dev & d)
+ 	bool operator > (const dev & d)
 	{
 		return _monitors > d._monitors and (_width > d._width or _height > d._height);
 	}
- 	operator >= (const dev & d)
+ 	bool operator >= (const dev & d)
 	{
 		return _monitors >= d._monitors;
 	}

@@ -76,6 +76,7 @@ class win_t
 {
 public:
 	HWND _hwnd;
+	HDC _hdc;
 	WINDOWPLACEMENT _place;
 	HMONITOR _hmon;
 	bool _deserialized;
@@ -85,7 +86,11 @@ public:
 	win_t ()
 		: _hwnd{},
 		  _deserialized{}
-		{}
+	{}
+	~win_t ()
+	{
+		ReleaseDC(_hwnd, _hdc);
+	}
 };
 typedef std::map<HWND, win_t> mapwin_t;
 

@@ -91,17 +91,14 @@ namespace mcm {
 
 	void poshandler::get_windows ()
 	{
-		dev screen;
-		if (screen >= _screen_size) {
-			if (_clearing)
-				return;
-			logp (sys::e_debug, "Getting current desktop windows.");
-			_clearing = true;
-			//_windows.clear ();
-			// Get windows opened
-			EnumWindows (&Enum, (LPARAM)&_windows);
-			_clearing = false;
-		}
+		if (_clearing)
+			return;
+		logp (sys::e_debug, "Getting current desktop windows.");
+		_clearing = true;
+		_windows.clear ();
+		// Get windows opened
+		EnumWindows (&Enum, (LPARAM)&_windows);
+		_clearing = false;
 	}
 
 	void poshandler::save_configuration (std::string file_name)
