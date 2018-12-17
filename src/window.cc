@@ -24,6 +24,8 @@
 
 namespace mcm {
 
+	GUID power = { 0x2B84C20E, 0xAD23, 0x4ddf, { 0x93, 0xDB, 0x05, 0xFF, 0xBD, 0x7E, 0xFC, 0xA5 } };
+
 	Func noop = [](HWND, UINT, WPARAM, LPARAM) -> DWORD {
 					logp (sys::e_debug, "noop lambda");
 					return 0;

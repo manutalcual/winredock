@@ -32,11 +32,14 @@
 #include <winuser.h>
 #include <dbt.h>
 #include <cfgmgr32.h>
+#include <winnt.h>
 
 #include "dev.hh"
 #include "poshandler.hh"
 
 namespace mcm {
+
+	extern GUID power;
 
 	using Func = std::function<DWORD(HWND, UINT, WPARAM, LPARAM)>;
 	using FuncProc = LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM);
@@ -84,7 +87,8 @@ namespace mcm {
 			  _ready{false},
 			  _timer (0),
 			  _changing_resolution (false),
-			  _repositioned (true)
+			  _repositioned (true),
+			  _powersetting (false)
 		{
 			logf ();
 			_class.lpszClassName = ClassName;
@@ -224,6 +228,11 @@ namespace mcm {
 				_last_screen = d;
 				logp (sys::e_debug, "--------------------------------");
 				_ready = true;
+
+				RegisterPowerSettingNotification (_hwnd,
+												  &power,
+												  DEVICE_NOTIFY_WINDOW_HANDLE);
+
 				if (! _funcmap[message] (hwnd, message, wParam, lParam)) {
 					logp (sys::e_debug, "Error handling message: " << message << ".");
 				}
@@ -272,14 +281,19 @@ namespace mcm {
 				return 0;
 				break;
 			case WM_DISPLAYCHANGE:
+				logp (sys::e_debug, "WM_DISPLAYCHANGE message received.");
 				break;
 			case WM_TIMER: {
 				logp (sys::e_debug, "Receive WM_TIMER event.");
+				if (_powersetting) {
+					logp (sys::e_debug, "Not doing anything because on power saving mode.");
+					return 0;
+				}
 				logp (sys::e_debug, "Actual screen: ");
 				dev d;
 				logp (sys:::e_debug, "Last screen: ");
 				_last_screen.print ();
-				if (d != _last_screen && _changing_resolution) {
+				if (d != _last_screen) {
 					logp (sys::e_debug, "Changing resolution.");
 					std::string config_name = sys::itoa(d.width());
 					config_name += "_";
@@ -295,12 +309,11 @@ namespace mcm {
 							  << config_name << "'.");
 						_repos[config_name].get_windows ();
 					}
-					_changing_resolution = false;
 					_last_screen = d;
 					_screen_size = d;
 					logp (sys::e_debug, "Last screen set to: ");
 					_last_screen.print ();
-				} else if (d == _last_screen & !_changing_resolution) {
+				} else if (d == _last_screen) {
 					std::string config_name = sys::itoa(d.width());
 					config_name += "_";
 					config_name += sys::itoa(d.height());
@@ -327,6 +340,10 @@ namespace mcm {
 				break;
 			case WM_DEVICECHANGE: {
 				logp (sys::e_debug, "WM_DEVICECHANGE received!!!!");
+				if (_powersetting) {
+					logp (sys::e_debug, "Not doing anything because on power saving mode.");
+					break;
+				}
 				// Output some messages to the window.
 				switch (wParam)
 				{
@@ -337,7 +354,7 @@ namespace mcm {
 					logp(sys::e_debug, "Message: DBT_DEVICEREMOVECOMPLETE");
 					break;
 				case DBT_DEVNODES_CHANGED: {
-					logp (sys::e_debug, "Changing resolution...");
+					nlogp (sys::e_debug, "Changing resolution...");
 					_changing_resolution = true;
 					PDEV_BROADCAST_DEVICEINTERFACE b = (PDEV_BROADCAST_DEVICEINTERFACE) lParam;
 					if (b) {
@@ -348,39 +365,25 @@ namespace mcm {
 						else
 							logp (sys::e_debug, "Unkown device param type.");
 					} else {
-						logp (sys::e_debug, "There is no param!");
+						logp (sys::e_debug, "There is no device identity param!");
 					}
-					/*
-					logp(sys::e_debug, "Message: DBT_DEVNODES_CHANGED");
-					logp (sys::e_debug, "New screen size...");
-					dev d;
-					logp (sys::e_debug, "Current reference screen size...");
-					_screen_size.print ();
-					logp (sys::e_debug, "Last screen...");
-					_last_screen.print ();
-					if (d != _last_screen) {
-						logp (sys::e_debug,
-							  "Repositioning windows because screen increased or was restored.");
-						std::string config_name = sys::itoa(d.width());
-						config_name += "_";
-						config_name += sys::itoa(d.height());
-						config_name += "_";
-						config_name += sys::itoa(d.monitors());
-						if (_repos.find(config_name) != _repos.end()) {
-							logp (sys::e_debug, "Repositioning windows.");
-							_repos[config_name].reposition ();
-						} else {
-							logp (sys::e_debug, "Getting new configuration.");
-							_repos[config_name].get_windows ();
-						}
-						_last_screen = d;
-					}
-					*/
 				}
 					break;
 				default:
 					logp(sys::e_debug, "Message " << wParam << " unhandled: WM_DEVICECHANGE");
 					break;
+				}
+			}
+				break;
+			case WM_POWERBROADCAST: {
+				logp (sys::e_debug, "Received a WM_POWERBROADCAST");
+				_powersetting = !_powersetting;
+				switch (wParam) {
+				case PBT_POWERSETTINGCHANGE: {
+					POWERBROADCAST_SETTING * p = (POWERBROADCAST_SETTING *)lParam;
+					logp (sys::e_debug, "Changing powesettings.");
+					break;
+				}
 				}
 			}
 				break;
@@ -475,6 +478,7 @@ namespace mcm {
 		bool _changing_resolution;
 		bool _repositioned;
 		maprepohandlers_t _repos;
+		bool _powersetting;
 
 		bool register_notification (GUID * guid)
 		{
