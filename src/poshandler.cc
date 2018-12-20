@@ -55,7 +55,7 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 		if (mcm::poshandler::discard_window_app_frame((const char *)class_name,
 													  ::strlen(class_name)))
 		{
-			//return TRUE;
+			return TRUE;
 		}
 
 		win_t win;
