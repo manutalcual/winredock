@@ -38,6 +38,9 @@ namespace mcm {
 		void get_windows ();
 		void save_configuration (std::string file_name);
 		void load_configuration (std::string file_name);
+		bool window_exist (HWND & hwnd);
+		void remove_window (HWND & hwnd);
+		void uniform_windows (poshandler & pos);
 		void uniform_windows ();
 
 		static bool get_class_name (HWND hwnd, LPSTR buf, INT buf_size);

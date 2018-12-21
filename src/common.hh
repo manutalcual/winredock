@@ -82,10 +82,12 @@ public:
 	bool _deserialized;
 	std::string _title;
 	std::string _class_name;
+	bool _erase;
 
 	win_t ()
 		: _hwnd{},
-		  _deserialized{}
+		  _deserialized{},
+		  _erase{}
 	{}
 	~win_t ()
 	{

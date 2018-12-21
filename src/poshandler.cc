@@ -158,6 +158,39 @@ namespace mcm {
 		}
 	}
 
+	bool poshandler::window_exist (HWND & hwnd)
+	{
+		return _windows.find(hwnd) != _windows.end();
+	}
+
+	void poshandler::remove_window (HWND & hwnd)
+	{
+	}
+
+	void poshandler::uniform_windows (poshandler & pos)
+	{
+		if (_clearing)
+			return;
+		_clearing = true;
+		for (auto & item : _windows) {
+			if (! pos.window_exist(item.second._hwnd)) {
+				item.second._erase = true;
+			}
+		}
+		mapwin_t::iterator b = _windows.begin();
+		mapwin_t::iterator e = _windows.end();
+
+		for ( ; b != e; ) {
+			if (b->second._erase) {
+				logp (sys::e_debug, "Deleting windows '"
+					  << b->second._class_name
+					  << "', because deleted in other config.");
+				_windows.erase (b++);
+			} else {
+				++b;
+			}
+		}
+	}
 	void poshandler::uniform_windows ()
 	{
 		if (_clearing)
