@@ -384,7 +384,7 @@ namespace mcm {
 				break;
 			case WM_POWERBROADCAST: {
 				logp (sys::e_debug, "Received a WM_POWERBROADCAST");
-				_powersetting = !_powersetting;
+				//_powersetting = !_powersetting;
 				switch (wParam) {
 				case PBT_POWERSETTINGCHANGE: {
 					POWERBROADCAST_SETTING * p = (POWERBROADCAST_SETTING *)lParam;
