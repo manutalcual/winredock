@@ -285,10 +285,6 @@ namespace mcm {
 				break;
 			case WM_TIMER: {
 				logp (sys::e_debug, "Receive WM_TIMER event.");
-				if (_powersetting) {
-					logp (sys::e_debug, "Not doing anything because on power saving mode.");
-					return 0;
-				}
 				logp (sys::e_debug, "Actual screen: ");
 				dev d;
 				logp (sys:::e_debug, "Last screen: ");
@@ -304,10 +300,12 @@ namespace mcm {
 						poshandler & repo = _repos[config_name];
 						logp (sys::e_debug, "Uniforming windows: '"
 							  << config_name << "'.");
+						/*
 						for (auto & r : _repos) {
 							if (r.first != config_name)
 								r.second.uniform_windows (repo);
 						}
+						*/
 						logp (sys::e_debug, "Repositioning windows: '"
 							  << config_name << "'.");
 						_repos[config_name].reposition ();
@@ -347,10 +345,6 @@ namespace mcm {
 				break;
 			case WM_DEVICECHANGE: {
 				logp (sys::e_debug, "WM_DEVICECHANGE received!!!!");
-				if (_powersetting) {
-					logp (sys::e_debug, "Not doing anything because on power saving mode.");
-					break;
-				}
 				// Output some messages to the window.
 				switch (wParam)
 				{
