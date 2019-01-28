@@ -97,7 +97,7 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 			  << win._place.rcNormalPosition.right << ", "
 			  << win._place.rcNormalPosition.bottom);
 
-		logp (sys::e_debug, "  offscreen? ");
+		logp (sys::e_debug, "  offscreen? " << (hmon == NULL));
 
 		win._off_screen = (win._place.rcNormalPosition.top > d._bottom
 						   || win._place.rcNormalPosition.bottom < d._top
