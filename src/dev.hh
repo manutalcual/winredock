@@ -47,16 +47,32 @@ public:
 		// The top left corner will have coordinates (0,0)
 		// and the bottom right corner will have coordinates
 		// (horizontal, vertical)
+		_top = GetSystemMetrics(SM_XVIRTUALSCREEN); //desktop.top;
+		_left = GetSystemMetrics(SM_YVIRTUALSCREEN); //desktop.left;
+		_top = GetSystemMetrics(SM_CXMAXTRACK);
+		_left = GetSystemMetrics(SM_CYMAXTRACK);
 		_right = desktop.right;
 		_bottom = desktop.bottom;
 		// SM_CYVIRTUALSCREEN
 		// SM_CXVIRTUALSCREEN
 		_width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
 		_height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-		if (_monitors == 0)
-			enum_monitors ();
+		_monitors = 0;
+#if 0
+		DWORD           DispNum = 0;
+		DISPLAY_DEVICE  DisplayDevice;
+
+		DisplayDevice.cb = sizeof(DISPLAY_DEVICE);
+		while (EnumDisplayDevicesA(NULL, DispNum, &DisplayDevice, 0)) {
+			++DispNum;
+			logp (sys::e_debug, "Display name: '" << DisplayDevice.DeviceName << "'");
+		}
+#endif
+		enum_monitors ();
 		logp (sys::e_debug, "Metrics [read]: width: " << _width
 			  << ", height: " << _height
+			  << ", top: " << _top
+			  << ", left: " << _left
 			  << ", right: " << _right
 			  << ", bottom: " << _bottom
 			  << ", monitors: " << _monitors);
@@ -126,12 +142,33 @@ public:
 	{
 		++_monitors;
 	}
-private:
+	void update_monitors (HMONITOR hmon)
+	{
+		MONITORINFO mi;
+		mi.cbSize = sizeof(MONITORINFO);
+		GetMonitorInfo(hmon, &mi);
+		logp (sys::e_debug, "Monitor data: "
+			  << mi.rcWork.top << ", "
+			  << mi.rcWork.left << ", "
+			  << mi.rcWork.right << ", "
+			  << mi.rcWork.bottom);
+		if (mi.rcWork.left < _left)
+			_left = mi.rcWork.left;
+		if (mi.rcWork.top < _top)
+			_top = mi.rcWork.top;
+		if (mi.rcWork.right > _right)
+			_right = mi.rcWork.right;
+		if (mi.rcWork.bottom > _bottom)
+			_bottom = mi.rcWork.bottom;
+	}
+//private:
 	int _monitors;
-	size_t _width;
-	size_t _height;
-	size_t _right;
-	size_t _bottom;
+	int _top;
+	int _left;
+	int _width;
+	int _height;
+	int _right;
+	int _bottom;
 
 };
 

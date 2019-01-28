@@ -61,25 +61,58 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 		win_t win;
         CHAR buf[260];
 
+		dev d;
+		std::string config_name = mcm::sys::itoa(d.width());
+		config_name += "_";
+		config_name += mcm::sys::itoa(d.height());
+		config_name += "_";
+		config_name += mcm::sys::itoa(d.monitors());
+
 		win._hwnd = hwnd;
         GetWindowTextA(hwnd, buf, ARRAYSIZE(buf));
-		win._hmon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
 		win._title = buf;
 		win._class_name = class_name;
 		mcm::poshandler::get_window_placement (hwnd, win._place);
+
 		logp (sys::e_debug, "Adding window with class '" << class_name << "': "
 			  << ", top " << win._place.rcNormalPosition.top
 			  << ", left " << win._place.rcNormalPosition.left
 			  << ", right " << win._place.rcNormalPosition.right
 			  << ", bottom " << win._place.rcNormalPosition.bottom
 		);
+
+		HMONITOR hmon = MonitorFromRect(&win._place.rcNormalPosition, MONITOR_DEFAULTTONULL);
+		MONITORINFO mi;
+		mi.cbSize = sizeof(MONITORINFO);
+		GetMonitorInfo(hmon, &mi);
+
+		logp (sys::e_debug, "Monitor data: "
+			  << mi.rcWork.top << ", "
+			  << mi.rcWork.left << ", "
+			  << mi.rcWork.right << ", "
+			  << mi.rcWork.bottom);
+		logp (sys::e_debug, "Window data: "
+			  << win._place.rcNormalPosition.top << ", "
+			  << win._place.rcNormalPosition.left << ", "
+			  << win._place.rcNormalPosition.right << ", "
+			  << win._place.rcNormalPosition.bottom);
+
+		logp (sys::e_debug, "  offscreen? ");
+
+		win._off_screen = (win._place.rcNormalPosition.top > d._bottom
+						   || win._place.rcNormalPosition.bottom < d._top
+						   || win._place.rcNormalPosition.right < d._left
+						   || win._place.rcNormalPosition.left > d._right);
+		win_t::place_t place;
+		place._place = win._place;
+		place._hmon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
+		win._places[config_name] = place;
 		windows[win._hwnd] = win;
 		//show_status (win._place.showCmd);
 		//show_position (&win._place.rcNormalPosition);
     }
     return TRUE;
 }
-
 namespace mcm {
 
 	poshandler::poshandler ()

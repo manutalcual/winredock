@@ -75,19 +75,28 @@ const std::string FILE_NAME ("window_list.json");
 class win_t
 {
 public:
+	class place_t
+	{
+	public:
+		WINDOWPLACEMENT _place;
+		HMONITOR _hmon;
+	};
+	typedef std::map<std::string, win_t::place_t> places_t;
 	HWND _hwnd;
 	HDC _hdc;
 	WINDOWPLACEMENT _place;
-	HMONITOR _hmon;
+	places_t _places;
 	bool _deserialized;
 	std::string _title;
 	std::string _class_name;
 	bool _erase;
+	bool _off_screen;
 
 	win_t ()
 		: _hwnd{},
 		  _deserialized{},
-		  _erase{}
+		  _erase{},
+		  _off_screen{}
 	{}
 	~win_t ()
 	{
