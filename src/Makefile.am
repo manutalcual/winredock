@@ -6,6 +6,7 @@ bin_PROGRAMS = wm
 wm_LDADD = -lcfgmgr32
 wm_SOURCES = main.hh main.cc \
 	wm.rc resource.h \
+	dev.hh dev.cc \
 	common.hh common.cc \
 	deserializer.hh deserializer.cc \
 	window.hh window.cc \

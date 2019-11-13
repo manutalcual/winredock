@@ -51,7 +51,7 @@ Then, the compilation.
 
 Just:
 
-    $ configure
+    $ ./configure
     $ make
 
 The standar automake procedure.
@@ -84,12 +84,8 @@ Read config: will read that file.
 
 Exit: will exit from the app.
 
-At first run, you have to `Get windows` and `Save config.`, from now
-on, you may `Read config` and, left clicking on the icon, the app will
-restore windows.
-
-You have to `Get windows` and `Save config` everytime you want to take
-in account a new application.
+Yoy don't need to do anything, it will take window positions and
+remember them and restore when there are windows display changes.
 
 
 Thsnk you for your time.

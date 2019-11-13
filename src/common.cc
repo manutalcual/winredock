@@ -38,6 +38,13 @@ namespace mcm {
 			return num;
 		}
 
+		std::string itoa (int i)
+		{
+			char buf[124];
+			::sprintf (buf, "%d", i);
+			return buf;
+		}
+
 		stat_t::stat_t (std::string file_name)
 			: _good (::stat(file_name.c_str(), &_st) == 0)
 		{
@@ -101,7 +108,7 @@ namespace mcm {
 				break;
 			}
 
-			HRESULT result = SHGetFolderPath(NULL, flag, NULL, 0, _path);
+			HRESULT result = SHGetFolderPathA(NULL, flag, NULL, 0, _path);
 			if (SUCCEEDED(result)) {
 				/*
 				MessageBoxExW ((HWND)0, profilePath, L"Seting working dir",
@@ -109,7 +116,7 @@ namespace mcm {
 							   MAKELANGID(LANG_NEUTRAL,
 							   SUBLANG_NEUTRAL));
 				*/
-				return SetCurrentDirectory(_path);
+				return SetCurrentDirectoryA(_path);
 			}
 			return false;
 		}

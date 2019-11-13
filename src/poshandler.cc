@@ -55,47 +55,83 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 		if (mcm::poshandler::discard_window_app_frame((const char *)class_name,
 													  ::strlen(class_name)))
 		{
-			//return TRUE;
+			return TRUE;
 		}
 
 		win_t win;
         CHAR buf[260];
 
+		dev d;
+		std::string config_name = mcm::sys::itoa(d.width());
+		config_name += "_";
+		config_name += mcm::sys::itoa(d.height());
+		config_name += "_";
+		config_name += mcm::sys::itoa(d.monitors());
+
 		win._hwnd = hwnd;
         GetWindowTextA(hwnd, buf, ARRAYSIZE(buf));
 		win._title = buf;
 		win._class_name = class_name;
-		nlogp (sys::e_debug, "Adding window with class '" << class_name << "'.");
 		mcm::poshandler::get_window_placement (hwnd, win._place);
+
+		logp (sys::e_debug, "Adding window with class '" << class_name << "': "
+			  << ", top " << win._place.rcNormalPosition.top
+			  << ", left " << win._place.rcNormalPosition.left
+			  << ", right " << win._place.rcNormalPosition.right
+			  << ", bottom " << win._place.rcNormalPosition.bottom
+		);
+
+		HMONITOR hmon = MonitorFromRect(&win._place.rcNormalPosition, MONITOR_DEFAULTTONULL);
+		MONITORINFO mi;
+		mi.cbSize = sizeof(MONITORINFO);
+		GetMonitorInfo(hmon, &mi);
+
+		logp (sys::e_debug, "Monitor data: "
+			  << mi.rcWork.top << ", "
+			  << mi.rcWork.left << ", "
+			  << mi.rcWork.right << ", "
+			  << mi.rcWork.bottom);
+		logp (sys::e_debug, "Window data: "
+			  << win._place.rcNormalPosition.top << ", "
+			  << win._place.rcNormalPosition.left << ", "
+			  << win._place.rcNormalPosition.right << ", "
+			  << win._place.rcNormalPosition.bottom);
+
+		logp (sys::e_debug, "  offscreen? " << (hmon == NULL));
+
+		win._off_screen = (win._place.rcNormalPosition.top > d._bottom
+						   || win._place.rcNormalPosition.bottom < d._top
+						   || win._place.rcNormalPosition.right < d._left
+						   || win._place.rcNormalPosition.left > d._right);
+		win_t::place_t place;
+		place._place = win._place;
+		place._hmon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
+		win._places[config_name] = place;
 		windows[win._hwnd] = win;
 		//show_status (win._place.showCmd);
 		//show_position (&win._place.rcNormalPosition);
     }
     return TRUE;
 }
-
 namespace mcm {
 
-	poshandler::poshandler (mapwin_t & windows)
-		: _clearing (false),
-		  _windows (windows)
+	poshandler::poshandler ()
+		: _clearing (false)
 	{
+		logf ();
 		EnumWindows (&Enum, (LPARAM)&_windows);
 	}
 
 	void poshandler::get_windows ()
 	{
-		dev screen;
-		if (screen >= _screen_size) {
-			if (_clearing)
-				return;
-			logp (sys::e_debug, "Getting current desktop windows.");
-			_clearing = true;
-			_windows.clear ();
-			// Get windows opened
-			EnumWindows (&Enum, (LPARAM)&_windows);
-			_clearing = false;
-		}
+		if (_clearing)
+			return;
+		logp (sys::e_debug, "Getting current desktop windows.");
+		_clearing = true;
+		_windows.clear ();
+		// Get windows opened
+		EnumWindows (&Enum, (LPARAM)&_windows);
+		_clearing = false;
 	}
 
 	void poshandler::save_configuration (std::string file_name)
@@ -130,7 +166,11 @@ namespace mcm {
 		mapwin_t::iterator end = _windows.end();
 		for (; begin != end; ++begin) {
 			logp (sys::e_debug, "Setting placement for '"
-				  << begin->second._title << "'");
+				  << begin->second._class_name << "': "
+				  << ", top " << begin->second._place.rcNormalPosition.top
+				  << ", left " << begin->second._place.rcNormalPosition.left
+				  << ", right " << begin->second._place.rcNormalPosition.right
+				  << ", bottom " << begin->second._place.rcNormalPosition.bottom);
 			if (begin->second._place.showCmd == SW_MAXIMIZE) {
 				WINDOWPLACEMENT wp = begin->second._place;
 				wp.showCmd = SW_RESTORE;
@@ -151,6 +191,39 @@ namespace mcm {
 		}
 	}
 
+	bool poshandler::window_exist (HWND & hwnd)
+	{
+		return _windows.find(hwnd) != _windows.end();
+	}
+
+	void poshandler::remove_window (HWND & hwnd)
+	{
+	}
+
+	void poshandler::uniform_windows (poshandler & pos)
+	{
+		if (_clearing)
+			return;
+		_clearing = true;
+		for (auto & item : _windows) {
+			if (! pos.window_exist(item.second._hwnd)) {
+				item.second._erase = true;
+			}
+		}
+		mapwin_t::iterator b = _windows.begin();
+		mapwin_t::iterator e = _windows.end();
+
+		for ( ; b != e; ) {
+			if (b->second._erase) {
+				logp (sys::e_debug, "Deleting windows '"
+					  << b->second._class_name
+					  << "', because deleted in other config.");
+				_windows.erase (b++);
+			} else {
+				++b;
+			}
+		}
+	}
 	void poshandler::uniform_windows ()
 	{
 		if (_clearing)
@@ -160,8 +233,7 @@ namespace mcm {
 			logp (sys::e_debug, "The window is: "
 				  << item.second._hwnd << ", "
 				  << item.second._deserialized << ", '"
-				  << item.second._class_name << "', '"
-				  << item.second._title << "'.");
+				  << item.second._class_name << "', '<anonymized>'.");
 			for (auto & other : _windows) {
 				if (/* item != other and */
 					!item.second._deserialized and
@@ -173,8 +245,7 @@ namespace mcm {
 					win_t & fakew = other.second; // from OS
 					logp (sys::e_debug, "\tnomalize '"
 						  << realw._deserialized << "', '"
-						  << realw._class_name << "', '"
-						  << realw._title << "' with '"
+						  << realw._class_name << "', '<anonymized>' with '"
 						  << fakew._deserialized << "', '"
 						  << fakew._class_name << "', '"
 						  << fakew._title << "'.");
