@@ -1,6 +1,6 @@
-# winredock
+Rearrange windows when you re-dock your laptop or change monitors.
 
-## Rearrange windows when you re-dock your laptop
+# winredock
 
 I'm tired of always rearranging windows when I leave my desk to go to
 a meeting with my laptop. I always have to go one application to the
@@ -16,10 +16,15 @@ It is a *tool* so don't expect to be a production class
 application. (Comments and requess for improvement are welcome,
 however.)
 
-### Not compiling
+### Installation
 
-Use the zip in "bin" directory. There are Cygwin64 DLLs and the
-executable app.
+1. Download bin/bin.zip
+2. Unpack the contents into a directory on your computer (eg into a folder in your C:\ drive).
+3. Create a shortcut to the mw.exe in C:\Users\<your user>\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup so the program starts up when your computer does.
+
+### Use instructions
+
+There will be an icon in your traybar showing a gear with a green arrow. Redock will automatically save window positions and restore them when a display-change happens. Ignore the menu options, they're not needed (and deprecated).
 
 ### Compilation (MS Visual Studio)
 
@@ -54,7 +59,7 @@ Just:
     $ ./configure
     $ make
 
-The standar automake procedure.
+The standard automake procedure.
 
 In the `scripts` directory there is a `reg` file to add an entry to
 the registry to run the application at Windows startup. It's not
@@ -63,31 +68,3 @@ tested, _and it contains my user name_, so you have to change that:
     "amadock"="C:\\Users\\mcano\\wm.exe"
 
 Where it says "mcano" you have to write your Windows user name.
-
-### Use instructions.
-
-There will be an icon in your traybar showing a gear with a green
-arrow. Just right click on the icon and a menu will appear:
-
-    Get windows
-    Save config.
-    Read config
-    --
-    Exit
-
-Get windows: will get you current windows positions and sizes.
-
-Save config: will save those windows positions and sizes to a JSON
-file.
-
-Read config: will read that file.
-
-Exit: will exit from the app.
-
-Yoy don't need to do anything, it will take window positions and
-remember them and restore when there are windows display changes.
-
-
-Thsnk you for your time.
-
-Manuel
