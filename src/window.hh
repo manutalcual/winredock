@@ -139,6 +139,7 @@ namespace mcm {
 
 		bool create ()
 		{
+			logf ();
 			_hwnd = CreateWindowEx(
 				0, ClassName,
 				WindowTitle,
@@ -164,6 +165,7 @@ namespace mcm {
 				 const char * IconText>
 		window & add_taskbar_icon ()
 		{
+			logf ();
 			logp (ss::e_debug, "Adding taskbar icon");
 			_notify_icon_data.cbSize = sizeof(NOTIFYICONDATA);
 			_notify_icon_data.hWnd = _hwnd;
@@ -179,6 +181,7 @@ namespace mcm {
 
 		void register_all_guids ()
 		{
+			logf ();
 			CONFIGRET ret;
 
 			logp (sys::e_debug, "Eumerate GUIDs.");
@@ -203,10 +206,11 @@ namespace mcm {
 
 		LRESULT handle (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
-			nlogp (sys::e_debug, "Message received: "
-				   << message
-				   << "='" << get_msg(message) << "', "
-				   << wParam << ", " << lParam << "'.");
+			logf ();
+			logp (sys::e_debug, "Message received: "
+				  << message
+				  << "='" << get_msg(message) << "', "
+				  << wParam << ", " << lParam << "'.");
 
 			switch (message) {
 			case WM_NULL:
@@ -399,6 +403,7 @@ namespace mcm {
 
 		window & minimize ()
 		{
+			logf ();
 			Shell_NotifyIcon (NIM_ADD, &_notify_icon_data);
 			ShowWindow (_hwnd, SW_HIDE);
 			return *this;
@@ -406,6 +411,7 @@ namespace mcm {
 
 		window & restore ()
 		{
+			logf ();
 			ShowWindow (_hwnd, SW_SHOW);
 			return *this;
 		}
@@ -413,6 +419,7 @@ namespace mcm {
 
 		window & create_menu (Func func)
 		{
+			logf ();
 			_menu = CreatePopupMenu();
 			_icon_click = func;
 			return *this;
@@ -483,6 +490,7 @@ namespace mcm {
 
 		bool register_notification (GUID * guid)
 		{
+			logf ();
 			DEV_BROADCAST_DEVICEINTERFACE NotificationFilter;
 
 			ZeroMemory (&NotificationFilter, sizeof(NotificationFilter));

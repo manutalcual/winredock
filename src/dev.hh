@@ -59,13 +59,15 @@ public:
 		_height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 		_monitors = 0;
 #if 0
+		logp (sys::e_debug, "Enumerating display devices");
 		DWORD           DispNum = 0;
 		DISPLAY_DEVICE  DisplayDevice;
 
 		DisplayDevice.cb = sizeof(DISPLAY_DEVICE);
 		while (EnumDisplayDevicesA(NULL, DispNum, &DisplayDevice, 0)) {
 			++DispNum;
-			logp (sys::e_debug, "Display name: '" << DisplayDevice.DeviceName << "'");
+			logp (sys::e_debug, "Display name: '" << DisplayDevice.DeviceName << "' "
+				  << DispNum);
 		}
 #endif
 		enum_monitors ();
@@ -144,14 +146,31 @@ public:
 	}
 	void update_monitors (HMONITOR hmon)
 	{
+		nlogf ();
 		MONITORINFO mi;
 		mi.cbSize = sizeof(MONITORINFO);
 		GetMonitorInfo(hmon, &mi);
-		logp (sys::e_debug, "Monitor data: "
-			  << mi.rcWork.top << ", "
-			  << mi.rcWork.left << ", "
-			  << mi.rcWork.right << ", "
-			  << mi.rcWork.bottom);
+
+		if (mi.rcWork.top != _top or
+			mi.rcWork.left != _left or
+			mi.rcWork.right != _right or
+			mi.rcWork.bottom != _bottom)
+		{
+			nlogp (sys::e_debug, "Monitor data has changed: ");
+			nlogp (sys::e_debug, "  previous data: "
+				  << _top << ", "
+				  << _left << ", "
+				  << _right << ", "
+				  << _bottom);
+
+			nlogp (sys::e_debug, "  actual data: "
+				  << mi.rcWork.top << ", "
+				  << mi.rcWork.left << ", "
+				  << mi.rcWork.right << ", "
+				  << mi.rcWork.bottom);
+			nlogp (sys::e_debug, "  monitor data is going to be updated");
+		}
+
 		if (mi.rcWork.left < _left)
 			_left = mi.rcWork.left;
 		if (mi.rcWork.top < _top)

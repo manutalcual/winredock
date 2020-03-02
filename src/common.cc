@@ -28,6 +28,15 @@
 namespace mcm {
 	namespace sys {
 
+		std::string log_tabs::tabs = "";
+
+		std::ostream & operator << (std::ostream & o, log_tabs & l)
+		{
+			o << log_tabs::tabs;
+			return o;
+		}
+
+
 #ifdef WITH_LOG
 		std::ofstream log ("wm.log");
 #endif
