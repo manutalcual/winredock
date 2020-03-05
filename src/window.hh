@@ -284,13 +284,22 @@ namespace mcm {
 				logp (sys::e_debug, "WM_MENUSELECT message received.");
 				return 0;
 				break;
-			case WM_DISPLAYCHANGE:
+			case WM_DISPLAYCHANGE: {
 				logp (sys::e_debug, "WM_DISPLAYCHANGE message received.");
+				dev d;
+				std::string config_name = mcm::sys::itoa(d.width());
+				config_name += "_";
+				config_name += mcm::sys::itoa(d.height());
+				config_name += "_";
+				config_name += mcm::sys::itoa(d.monitors());
+				logp (sys::e_debug, "Current configuration: " << config_name);
+			}
 				break;
 			case WM_TIMER: {
 				logp (sys::e_debug, "Receive WM_TIMER event.");
 				logp (sys::e_debug, "Actual screen: ");
 				dev d;
+				d.print ();
 				logp (sys:::e_debug, "Last screen: ");
 				_last_screen.print ();
 				if (d != _last_screen) {
@@ -359,7 +368,7 @@ namespace mcm {
 					logp(sys::e_debug, "Message: DBT_DEVICEREMOVECOMPLETE");
 					break;
 				case DBT_DEVNODES_CHANGED: {
-					nlogp (sys::e_debug, "Changing resolution...");
+					logp (sys::e_debug, "Changing resolution...");
 					_changing_resolution = true;
 					PDEV_BROADCAST_DEVICEINTERFACE b = (PDEV_BROADCAST_DEVICEINTERFACE) lParam;
 					if (b) {
@@ -371,6 +380,13 @@ namespace mcm {
 							logp (sys::e_debug, "Unkown device param type.");
 					} else {
 						logp (sys::e_debug, "There is no device identity param!");
+						dev d;
+						std::string config_name = mcm::sys::itoa(d.width());
+						config_name += "_";
+						config_name += mcm::sys::itoa(d.height());
+						config_name += "_";
+						config_name += mcm::sys::itoa(d.monitors());
+						logp (sys::e_debug, "Current configuration: " << config_name);
 					}
 				}
 					break;
@@ -490,7 +506,7 @@ namespace mcm {
 
 		bool register_notification (GUID * guid)
 		{
-			logf ();
+			nlogf ();
 			DEV_BROADCAST_DEVICEINTERFACE NotificationFilter;
 
 			ZeroMemory (&NotificationFilter, sizeof(NotificationFilter));

@@ -32,6 +32,15 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam);
 namespace mcm {
 	class poshandler
 	{
+		class rot_2
+		{
+		public:
+			rot_2 (const std::string & str);
+			operator std::string () { return _str; }
+			std::string get_length(size_t len);
+		private:
+			std::string _str;
+		};
 	public:
 		poshandler ();
 		void reposition ();

@@ -54,12 +54,11 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 	nlogp (sys::e_debug, "Enum: Get class name: '" << class_name << "'");
 
     if (is_alt_tab_window(hwnd) && IsWindowVisible(hwnd)) {
-		logp (sys::e_debug, "Window '" << class_name << "' is a visible window");
 		if (mcm::poshandler::discard_window_app_frame((const char *)class_name,
-													  ::strlen(class_name)))
+															   ::strlen(class_name)))
 		{
-			logp (sys::e_debug, "Discarding window (because it is an app frame).");
-			logp (sys::e_debug, "    " << class_name);
+			nlogp (sys::e_debug, "Discarding window (because it is an app frame).");
+			nlogp (sys::e_debug, "    " << class_name);
 			return TRUE;
 		}
 
@@ -72,7 +71,7 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 		config_name += mcm::sys::itoa(d.height());
 		config_name += "_";
 		config_name += mcm::sys::itoa(d.monitors());
-		logp (sys::e_debug, "Current configuration: " << config_name);
+		nlogp (sys::e_debug, "Current configuration: " << config_name);
 
 		win._hwnd = hwnd;
         GetWindowTextA(hwnd, buf, ARRAYSIZE(buf));
@@ -80,39 +79,31 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 		win._class_name = class_name;
 		mcm::poshandler::get_window_placement (hwnd, win._place);
 
-		logp (sys::e_debug, "Adding window with class '" << class_name << "': "
-			  << ", top " << win._place.rcNormalPosition.top
-			  << ", left " << win._place.rcNormalPosition.left
-			  << ", right " << win._place.rcNormalPosition.right
-			  << ", bottom " << win._place.rcNormalPosition.bottom
-		);
-
 		HMONITOR hmon = MonitorFromRect(&win._place.rcNormalPosition, MONITOR_DEFAULTTONULL);
 		MONITORINFO mi;
 		mi.cbSize = sizeof(MONITORINFO);
 		GetMonitorInfo(hmon, &mi);
 
-		logp (sys::e_debug, "Get monitor info from window RECT (normal position): top "
-			  << mi.rcWork.top << ", left "
-			  << mi.rcWork.left << ", right "
-			  << mi.rcWork.right << ", bottom "
-			  << mi.rcWork.bottom);
-		logp (sys::e_debug, "Previous window position and size: top "
-			  << win._place.rcNormalPosition.top << ", left "
-			  << win._place.rcNormalPosition.left << ", right "
-			  << win._place.rcNormalPosition.right << ", bottom "
-			  << win._place.rcNormalPosition.bottom);
-
-		logp (sys::e_debug, "  offscreen (there is no monitor)? " << (hmon == NULL));
-
 		win._off_screen = (win._place.rcNormalPosition.top > d._bottom
 						   || win._place.rcNormalPosition.bottom < d._top
 						   || win._place.rcNormalPosition.right < d._left
 						   || win._place.rcNormalPosition.left > d._right);
-		logp (sys::e_debug, "  try heuristics to see if it is offscreen: " << win._off_screen);
+		logp (sys::e_debug, "Window monitor info: top "
+			  << mi.rcMonitor.top << ", left "
+			  << mi.rcMonitor.left << ", right "
+			  << mi.rcMonitor.right << ", bottom "
+			  << mi.rcMonitor.bottom << ", primary? "
+			  << mi.dwFlags);
+		logp (sys::e_debug, "Window class " << class_name << " position: top "
+			  << win._place.rcNormalPosition.top << ", left "
+			  << win._place.rcNormalPosition.left << ", right "
+			  << win._place.rcNormalPosition.right << ", bottom "
+			  << win._place.rcNormalPosition.bottom << ", no monitor? "
+			  << (bool)(hmon == NULL) << ", calc offscreen: "
+			  << win._off_screen);
+
 		win_t::place_t place;
 		place._place = win._place;
-		logp (sys::e_debug, "Set place monitor to HWND or default if there is no HWND one");
 		place._hmon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
 		win._places[config_name] = place;
 		windows[win._hwnd] = win;
@@ -122,6 +113,23 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
     return TRUE;
 }
 namespace mcm {
+
+	poshandler::rot_2::rot_2 (const std::string & str)
+		: _str(str)
+	{
+
+		for (size_t i = 0; i < _str.size(); ++i) {
+			if ((_str[i] + 2) > 126)
+				_str[i] -= 2;
+			else
+				_str[i] += 2;
+		}
+	}
+
+	std::string poshandler::rot_2::get_length(size_t len)
+	{
+		return _str.substr(0, len);
+	}
 
 	poshandler::poshandler ()
 		: _clearing (false)
@@ -335,10 +343,21 @@ namespace mcm {
 	bool poshandler::get_class_name (HWND hwnd, LPSTR buf, INT buf_size)
 	{
 		bool result = true;
-		UINT length = GetClassNameA(hwnd, buf, buf_size);
+		char window_title[20];
+		UINT class_length = GetClassNameA(hwnd, buf, buf_size);
+		UINT title_length = GetWindowTextA(hwnd, window_title, ARRAYSIZE(window_title));
 
-		if (! length) {
+		if (! class_length) {
 			result = false;
+		}
+		std::string sum;
+
+		sum = buf;
+
+		if (title_length) {
+			rot_2 r(window_title);
+			sum += r;
+			::strncpy (buf, sum.c_str(), sum.size());
 		}
 
 		return result;

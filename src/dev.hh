@@ -71,7 +71,7 @@ public:
 		}
 #endif
 		enum_monitors ();
-		logp (sys::e_debug, "Metrics [read]: width: " << _width
+		nlogp (sys::e_debug, "Metrics [read]: width: " << _width
 			  << ", height: " << _height
 			  << ", top: " << _top
 			  << ", left: " << _left
@@ -83,6 +83,8 @@ public:
 	{
 		logp (sys::e_debug, "Metrics [print]: width: " << _width
 			  << ", height: " << _height
+			  << ", top: " << _top
+			  << ", left: " << _left
 			  << ", right: " << _right
 			  << ", bottom: " << _bottom
 			  << ", monitors: " << _monitors);
@@ -151,10 +153,10 @@ public:
 		mi.cbSize = sizeof(MONITORINFO);
 		GetMonitorInfo(hmon, &mi);
 
-		if (mi.rcWork.top != _top or
-			mi.rcWork.left != _left or
-			mi.rcWork.right != _right or
-			mi.rcWork.bottom != _bottom)
+		if (mi.rcMonitor.top != _top or
+			mi.rcMonitor.left != _left or
+			mi.rcMonitor.right != _right or
+			mi.rcMonitor.bottom != _bottom)
 		{
 			nlogp (sys::e_debug, "Monitor data has changed: ");
 			nlogp (sys::e_debug, "  previous data: "
@@ -164,21 +166,21 @@ public:
 				  << _bottom);
 
 			nlogp (sys::e_debug, "  actual data: "
-				  << mi.rcWork.top << ", "
-				  << mi.rcWork.left << ", "
-				  << mi.rcWork.right << ", "
-				  << mi.rcWork.bottom);
+				  << mi.rcMonitor.top << ", "
+				  << mi.rcMonitor.left << ", "
+				  << mi.rcMonitor.right << ", "
+				  << mi.rcMonitor.bottom);
 			nlogp (sys::e_debug, "  monitor data is going to be updated");
 		}
 
 		if (mi.rcWork.left < _left)
-			_left = mi.rcWork.left;
+			_left = mi.rcMonitor.left;
 		if (mi.rcWork.top < _top)
-			_top = mi.rcWork.top;
+			_top = mi.rcMonitor.top;
 		if (mi.rcWork.right > _right)
-			_right = mi.rcWork.right;
+			_right = mi.rcMonitor.right;
 		if (mi.rcWork.bottom > _bottom)
-			_bottom = mi.rcWork.bottom;
+			_bottom = mi.rcMonitor.bottom;
 	}
 //private:
 	int _monitors;
