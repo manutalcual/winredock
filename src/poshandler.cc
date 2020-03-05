@@ -46,11 +46,18 @@ BOOL is_alt_tab_window(HWND hwnd)
 BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 {
 	nlogf ();
+	static size_t count = 0;
 	mapwin_t & windows = *(mapwin_t *)lParam;
 	const int BUF_SIZE = 1024;
 	char class_name[BUF_SIZE];
 
+	::memset (class_name, 0, BUF_SIZE);
+
+	logp (sys::e_debug, "--- Enum " << ++count << " ---");
 	mcm::poshandler::get_class_name (hwnd, (LPSTR)class_name, BUF_SIZE);
+	logp (sys::e_debug, "Window visible: " << IsWindowVisible(hwnd)
+		  << ", zoomed " << IsZoomed(hwnd)
+		  << ", iconic " << IsIconic(hwnd));
 	nlogp (sys::e_debug, "Enum: Get class name: '" << class_name << "'");
 
     if (is_alt_tab_window(hwnd) && IsWindowVisible(hwnd)) {
@@ -109,6 +116,8 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 		windows[win._hwnd] = win;
 		//show_status (win._place.showCmd);
 		//show_position (&win._place.rcNormalPosition);
+	} else {
+		logp (sys::e_debug, "Window is not alt-tab and/or not visible. (" << class_name << ")");
 	}
     return TRUE;
 }
@@ -343,9 +352,14 @@ namespace mcm {
 	bool poshandler::get_class_name (HWND hwnd, LPSTR buf, INT buf_size)
 	{
 		bool result = true;
-		char window_title[20];
-		UINT class_length = GetClassNameA(hwnd, buf, buf_size);
-		UINT title_length = GetWindowTextA(hwnd, window_title, ARRAYSIZE(window_title));
+		char window_title[200];
+		UINT class_length = 0;
+		UINT title_length = 0;
+
+		::memset (window_title, 0, 200);
+
+		class_length = GetClassNameA(hwnd, buf, buf_size);
+		title_length = GetWindowTextA(hwnd, window_title, ARRAYSIZE(window_title));
 
 		if (! class_length) {
 			result = false;
@@ -354,8 +368,10 @@ namespace mcm {
 
 		sum = buf;
 
+		logp (sys::e_debug, "Window class name: " << sum);
 		if (title_length) {
 			rot_2 r(window_title);
+			logp (sys::e_debug, "  window title: " << window_title);
 			sum += r;
 			::strncpy (buf, sum.c_str(), sum.size());
 		}

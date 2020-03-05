@@ -37,6 +37,7 @@ namespace mcm {
 		public:
 			rot_2 (const std::string & str);
 			operator std::string () { return _str; }
+			std::string get_string () { return _str; }
 			std::string get_length(size_t len);
 		private:
 			std::string _str;

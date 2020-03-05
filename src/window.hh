@@ -311,7 +311,7 @@ namespace mcm {
 					config_name += sys::itoa(d.monitors());
 					if (_repos.find(config_name) != _repos.end()) {
 						poshandler & repo = _repos[config_name];
-						logp (sys::e_debug, "Uniforming windows: '"
+						nlogp (sys::e_debug, "Uniforming windows: '"
 							  << config_name << "'.");
 						/*
 						for (auto & r : _repos) {
