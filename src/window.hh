@@ -139,6 +139,7 @@ namespace mcm {
 
 		bool create ()
 		{
+			logf ();
 			_hwnd = CreateWindowEx(
 				0, ClassName,
 				WindowTitle,
@@ -164,6 +165,7 @@ namespace mcm {
 				 const char * IconText>
 		window & add_taskbar_icon ()
 		{
+			logf ();
 			logp (ss::e_debug, "Adding taskbar icon");
 			_notify_icon_data.cbSize = sizeof(NOTIFYICONDATA);
 			_notify_icon_data.hWnd = _hwnd;
@@ -179,6 +181,7 @@ namespace mcm {
 
 		void register_all_guids ()
 		{
+			logf ();
 			CONFIGRET ret;
 
 			logp (sys::e_debug, "Eumerate GUIDs.");
@@ -203,10 +206,11 @@ namespace mcm {
 
 		LRESULT handle (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
-			nlogp (sys::e_debug, "Message received: "
-				   << message
-				   << "='" << get_msg(message) << "', "
-				   << wParam << ", " << lParam << "'.");
+			logf ();
+			logp (sys::e_debug, "Message received: "
+				  << message
+				  << "='" << get_msg(message) << "', "
+				  << wParam << ", " << lParam << "'.");
 
 			switch (message) {
 			case WM_NULL:
@@ -280,13 +284,22 @@ namespace mcm {
 				logp (sys::e_debug, "WM_MENUSELECT message received.");
 				return 0;
 				break;
-			case WM_DISPLAYCHANGE:
+			case WM_DISPLAYCHANGE: {
 				logp (sys::e_debug, "WM_DISPLAYCHANGE message received.");
+				dev d;
+				std::string config_name = mcm::sys::itoa(d.width());
+				config_name += "_";
+				config_name += mcm::sys::itoa(d.height());
+				config_name += "_";
+				config_name += mcm::sys::itoa(d.monitors());
+				logp (sys::e_debug, "Current configuration: " << config_name);
+			}
 				break;
 			case WM_TIMER: {
 				logp (sys::e_debug, "Receive WM_TIMER event.");
 				logp (sys::e_debug, "Actual screen: ");
 				dev d;
+				d.print ();
 				logp (sys:::e_debug, "Last screen: ");
 				_last_screen.print ();
 				if (d != _last_screen) {
@@ -298,7 +311,7 @@ namespace mcm {
 					config_name += sys::itoa(d.monitors());
 					if (_repos.find(config_name) != _repos.end()) {
 						poshandler & repo = _repos[config_name];
-						logp (sys::e_debug, "Uniforming windows: '"
+						nlogp (sys::e_debug, "Uniforming windows: '"
 							  << config_name << "'.");
 						/*
 						for (auto & r : _repos) {
@@ -355,7 +368,7 @@ namespace mcm {
 					logp(sys::e_debug, "Message: DBT_DEVICEREMOVECOMPLETE");
 					break;
 				case DBT_DEVNODES_CHANGED: {
-					nlogp (sys::e_debug, "Changing resolution...");
+					logp (sys::e_debug, "Changing resolution...");
 					_changing_resolution = true;
 					PDEV_BROADCAST_DEVICEINTERFACE b = (PDEV_BROADCAST_DEVICEINTERFACE) lParam;
 					if (b) {
@@ -367,6 +380,13 @@ namespace mcm {
 							logp (sys::e_debug, "Unkown device param type.");
 					} else {
 						logp (sys::e_debug, "There is no device identity param!");
+						dev d;
+						std::string config_name = mcm::sys::itoa(d.width());
+						config_name += "_";
+						config_name += mcm::sys::itoa(d.height());
+						config_name += "_";
+						config_name += mcm::sys::itoa(d.monitors());
+						logp (sys::e_debug, "Current configuration: " << config_name);
 					}
 				}
 					break;
@@ -399,6 +419,7 @@ namespace mcm {
 
 		window & minimize ()
 		{
+			logf ();
 			Shell_NotifyIcon (NIM_ADD, &_notify_icon_data);
 			ShowWindow (_hwnd, SW_HIDE);
 			return *this;
@@ -406,6 +427,7 @@ namespace mcm {
 
 		window & restore ()
 		{
+			logf ();
 			ShowWindow (_hwnd, SW_SHOW);
 			return *this;
 		}
@@ -413,6 +435,7 @@ namespace mcm {
 
 		window & create_menu (Func func)
 		{
+			logf ();
 			_menu = CreatePopupMenu();
 			_icon_click = func;
 			return *this;
@@ -483,6 +506,7 @@ namespace mcm {
 
 		bool register_notification (GUID * guid)
 		{
+			nlogf ();
 			DEV_BROADCAST_DEVICEINTERFACE NotificationFilter;
 
 			ZeroMemory (&NotificationFilter, sizeof(NotificationFilter));

@@ -59,17 +59,19 @@ public:
 		_height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 		_monitors = 0;
 #if 0
+		logp (sys::e_debug, "Enumerating display devices");
 		DWORD           DispNum = 0;
 		DISPLAY_DEVICE  DisplayDevice;
 
 		DisplayDevice.cb = sizeof(DISPLAY_DEVICE);
 		while (EnumDisplayDevicesA(NULL, DispNum, &DisplayDevice, 0)) {
 			++DispNum;
-			logp (sys::e_debug, "Display name: '" << DisplayDevice.DeviceName << "'");
+			logp (sys::e_debug, "Display name: '" << DisplayDevice.DeviceName << "' "
+				  << DispNum);
 		}
 #endif
 		enum_monitors ();
-		logp (sys::e_debug, "Metrics [read]: width: " << _width
+		nlogp (sys::e_debug, "Metrics [read]: width: " << _width
 			  << ", height: " << _height
 			  << ", top: " << _top
 			  << ", left: " << _left
@@ -81,6 +83,8 @@ public:
 	{
 		logp (sys::e_debug, "Metrics [print]: width: " << _width
 			  << ", height: " << _height
+			  << ", top: " << _top
+			  << ", left: " << _left
 			  << ", right: " << _right
 			  << ", bottom: " << _bottom
 			  << ", monitors: " << _monitors);
@@ -144,22 +148,39 @@ public:
 	}
 	void update_monitors (HMONITOR hmon)
 	{
+		nlogf ();
 		MONITORINFO mi;
 		mi.cbSize = sizeof(MONITORINFO);
 		GetMonitorInfo(hmon, &mi);
-		logp (sys::e_debug, "Monitor data: "
-			  << mi.rcWork.top << ", "
-			  << mi.rcWork.left << ", "
-			  << mi.rcWork.right << ", "
-			  << mi.rcWork.bottom);
+
+		if (mi.rcMonitor.top != _top or
+			mi.rcMonitor.left != _left or
+			mi.rcMonitor.right != _right or
+			mi.rcMonitor.bottom != _bottom)
+		{
+			nlogp (sys::e_debug, "Monitor data has changed: ");
+			nlogp (sys::e_debug, "  previous data: "
+				  << _top << ", "
+				  << _left << ", "
+				  << _right << ", "
+				  << _bottom);
+
+			nlogp (sys::e_debug, "  actual data: "
+				  << mi.rcMonitor.top << ", "
+				  << mi.rcMonitor.left << ", "
+				  << mi.rcMonitor.right << ", "
+				  << mi.rcMonitor.bottom);
+			nlogp (sys::e_debug, "  monitor data is going to be updated");
+		}
+
 		if (mi.rcWork.left < _left)
-			_left = mi.rcWork.left;
+			_left = mi.rcMonitor.left;
 		if (mi.rcWork.top < _top)
-			_top = mi.rcWork.top;
+			_top = mi.rcMonitor.top;
 		if (mi.rcWork.right > _right)
-			_right = mi.rcWork.right;
+			_right = mi.rcMonitor.right;
 		if (mi.rcWork.bottom > _bottom)
-			_bottom = mi.rcWork.bottom;
+			_bottom = mi.rcMonitor.bottom;
 	}
 //private:
 	int _monitors;

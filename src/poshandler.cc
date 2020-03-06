@@ -45,16 +45,27 @@ BOOL is_alt_tab_window(HWND hwnd)
 
 BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 {
+	nlogf ();
+	static size_t count = 0;
 	mapwin_t & windows = *(mapwin_t *)lParam;
+	const int BUF_SIZE = 1024;
+	char class_name[BUF_SIZE];
+
+	::memset (class_name, 0, BUF_SIZE);
+
+	logp (sys::e_debug, "--- Enum " << ++count << " ---");
+	mcm::poshandler::get_class_name (hwnd, (LPSTR)class_name, BUF_SIZE);
+	logp (sys::e_debug, "Window visible: " << IsWindowVisible(hwnd)
+		  << ", zoomed " << IsZoomed(hwnd)
+		  << ", iconic " << IsIconic(hwnd));
+	nlogp (sys::e_debug, "Enum: Get class name: '" << class_name << "'");
 
     if (is_alt_tab_window(hwnd) && IsWindowVisible(hwnd)) {
-		const int BUF_SIZE = 1024;
-		char class_name[BUF_SIZE];
-
-		mcm::poshandler::get_class_name (hwnd, (LPSTR)class_name, BUF_SIZE);
 		if (mcm::poshandler::discard_window_app_frame((const char *)class_name,
-													  ::strlen(class_name)))
+															   ::strlen(class_name)))
 		{
+			nlogp (sys::e_debug, "Discarding window (because it is an app frame).");
+			nlogp (sys::e_debug, "    " << class_name);
 			return TRUE;
 		}
 
@@ -67,6 +78,7 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 		config_name += mcm::sys::itoa(d.height());
 		config_name += "_";
 		config_name += mcm::sys::itoa(d.monitors());
+		nlogp (sys::e_debug, "Current configuration: " << config_name);
 
 		win._hwnd = hwnd;
         GetWindowTextA(hwnd, buf, ARRAYSIZE(buf));
@@ -74,35 +86,29 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 		win._class_name = class_name;
 		mcm::poshandler::get_window_placement (hwnd, win._place);
 
-		logp (sys::e_debug, "Adding window with class '" << class_name << "': "
-			  << ", top " << win._place.rcNormalPosition.top
-			  << ", left " << win._place.rcNormalPosition.left
-			  << ", right " << win._place.rcNormalPosition.right
-			  << ", bottom " << win._place.rcNormalPosition.bottom
-		);
-
 		HMONITOR hmon = MonitorFromRect(&win._place.rcNormalPosition, MONITOR_DEFAULTTONULL);
 		MONITORINFO mi;
 		mi.cbSize = sizeof(MONITORINFO);
 		GetMonitorInfo(hmon, &mi);
 
-		logp (sys::e_debug, "Monitor data: "
-			  << mi.rcWork.top << ", "
-			  << mi.rcWork.left << ", "
-			  << mi.rcWork.right << ", "
-			  << mi.rcWork.bottom);
-		logp (sys::e_debug, "Window data: "
-			  << win._place.rcNormalPosition.top << ", "
-			  << win._place.rcNormalPosition.left << ", "
-			  << win._place.rcNormalPosition.right << ", "
-			  << win._place.rcNormalPosition.bottom);
-
-		logp (sys::e_debug, "  offscreen? " << (hmon == NULL));
-
 		win._off_screen = (win._place.rcNormalPosition.top > d._bottom
 						   || win._place.rcNormalPosition.bottom < d._top
 						   || win._place.rcNormalPosition.right < d._left
 						   || win._place.rcNormalPosition.left > d._right);
+		logp (sys::e_debug, "Window monitor info: top "
+			  << mi.rcMonitor.top << ", left "
+			  << mi.rcMonitor.left << ", right "
+			  << mi.rcMonitor.right << ", bottom "
+			  << mi.rcMonitor.bottom << ", primary? "
+			  << mi.dwFlags);
+		logp (sys::e_debug, "Window class " << class_name << " position: top "
+			  << win._place.rcNormalPosition.top << ", left "
+			  << win._place.rcNormalPosition.left << ", right "
+			  << win._place.rcNormalPosition.right << ", bottom "
+			  << win._place.rcNormalPosition.bottom << ", no monitor? "
+			  << (bool)(hmon == NULL) << ", calc offscreen: "
+			  << win._off_screen);
+
 		win_t::place_t place;
 		place._place = win._place;
 		place._hmon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
@@ -110,10 +116,29 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 		windows[win._hwnd] = win;
 		//show_status (win._place.showCmd);
 		//show_position (&win._place.rcNormalPosition);
-    }
+	} else {
+		logp (sys::e_debug, "Window is not alt-tab and/or not visible. (" << class_name << ")");
+	}
     return TRUE;
 }
 namespace mcm {
+
+	poshandler::rot_2::rot_2 (const std::string & str)
+		: _str(str)
+	{
+
+		for (size_t i = 0; i < _str.size(); ++i) {
+			if ((_str[i] + 2) > 126)
+				_str[i] -= 2;
+			else
+				_str[i] += 2;
+		}
+	}
+
+	std::string poshandler::rot_2::get_length(size_t len)
+	{
+		return _str.substr(0, len);
+	}
 
 	poshandler::poshandler ()
 		: _clearing (false)
@@ -124,14 +149,18 @@ namespace mcm {
 
 	void poshandler::get_windows ()
 	{
-		if (_clearing)
+		logf ();
+		if (_clearing) {
+			logp (sys::e_debug, "We are clearing, don't get more windows");
 			return;
-		logp (sys::e_debug, "Getting current desktop windows.");
+		}
+		logp (sys::e_debug, "Getting current desktop windows. (clearing windows map)");
 		_clearing = true;
 		_windows.clear ();
 		// Get windows opened
 		EnumWindows (&Enum, (LPARAM)&_windows);
 		_clearing = false;
+		logp (sys::e_debug, "Got current desktop windows. (not clearing anymore)");
 	}
 
 	void poshandler::save_configuration (std::string file_name)
@@ -157,9 +186,15 @@ namespace mcm {
 
 	void poshandler::reposition ()
 	{
+		logf ();
 		if (_clearing) {
-			while (_clearing)
+			size_t clearing_count = 0;
+			while (_clearing and ++clearing_count < 1000)
 				;
+			if (clearing_count > 999) {
+				logp (sys::e_debug,
+					  "Clearing has reached 1000 (so reposition wait has to be forced.");
+			}
 		}
 		logp (sys::e_debug, "Repositioning.");
 		mapwin_t::iterator begin = _windows.begin();
@@ -198,42 +233,56 @@ namespace mcm {
 
 	void poshandler::remove_window (HWND & hwnd)
 	{
+		logf ();
+		logp (sys::e_debug, "Remove windows does nothing actually");
 	}
 
 	void poshandler::uniform_windows (poshandler & pos)
 	{
-		if (_clearing)
+		logf ();
+		if (_clearing) {
+			logp (sys::e_debug, "There is a clearing ongoing so no uniform windows");
 			return;
+		}
 		_clearing = true;
+		logp (sys::e_debug,
+			  "We have to check if one window in current config has been "
+			  "deleted in another screen configuration.");
 		for (auto & item : _windows) {
 			if (! pos.window_exist(item.second._hwnd)) {
 				item.second._erase = true;
 			}
 		}
+
 		mapwin_t::iterator b = _windows.begin();
 		mapwin_t::iterator e = _windows.end();
-
 		for ( ; b != e; ) {
 			if (b->second._erase) {
-				logp (sys::e_debug, "Deleting windows '"
+				logp (sys::e_debug, "Deleting window '"
 					  << b->second._class_name
-					  << "', because deleted in other config.");
+					  << "', because deleted in other screen config.");
 				_windows.erase (b++);
 			} else {
 				++b;
 			}
 		}
+		logp (sys::e_debug, "Clearing uniformed windows done");
+		_clearing = false;
 	}
 	void poshandler::uniform_windows ()
 	{
-		if (_clearing)
+		logf ();
+		if (_clearing) {
+			logp (sys::e_debug, "no uniform windows as we are clearing windows map");
 			return;
+		}
 
+		logp (sys::e_debug, "Go to unform windows between several screen configurations");
 		for (auto & item : _windows) {
 			logp (sys::e_debug, "The window is: "
 				  << item.second._hwnd << ", "
 				  << item.second._deserialized << ", '"
-				  << item.second._class_name << "', '<anonymized>'.");
+				  << item.second._class_name << "'.");
 			for (auto & other : _windows) {
 				if (/* item != other and */
 					!item.second._deserialized and
@@ -245,7 +294,7 @@ namespace mcm {
 					win_t & fakew = other.second; // from OS
 					logp (sys::e_debug, "\tnomalize '"
 						  << realw._deserialized << "', '"
-						  << realw._class_name << "', '<anonymized>' with '"
+						  << realw._class_name << "', with '"
 						  << fakew._deserialized << "', '"
 						  << fakew._class_name << "', '"
 						  << fakew._title << "'.");
@@ -277,6 +326,7 @@ namespace mcm {
 				}
 			}
 		}
+		logp (sys::e_debug, "Uniform windows got ready to do actually the work");
 		mapwin_t::iterator b = _windows.begin();
 		mapwin_t::iterator e = _windows.end();
 
@@ -290,6 +340,7 @@ namespace mcm {
 				++b;
 			}
 		}
+		logp (sys::e_debug, "Uniform windows finished");
 	}
 
 	bool poshandler::get_window_placement (HWND hwnd, WINDOWPLACEMENT & place)
@@ -301,10 +352,28 @@ namespace mcm {
 	bool poshandler::get_class_name (HWND hwnd, LPSTR buf, INT buf_size)
 	{
 		bool result = true;
-		UINT length = GetClassNameA(hwnd, buf, buf_size);
+		char window_title[200];
+		UINT class_length = 0;
+		UINT title_length = 0;
 
-		if (! length) {
+		::memset (window_title, 0, 200);
+
+		class_length = GetClassNameA(hwnd, buf, buf_size);
+		title_length = GetWindowTextA(hwnd, window_title, ARRAYSIZE(window_title));
+
+		if (! class_length) {
 			result = false;
+		}
+		std::string sum;
+
+		sum = buf;
+
+		logp (sys::e_debug, "Window class name: " << sum);
+		if (title_length) {
+			rot_2 r(window_title);
+			logp (sys::e_debug, "  window title: " << window_title);
+			sum += r;
+			::strncpy (buf, sum.c_str(), sum.size());
 		}
 
 		return result;

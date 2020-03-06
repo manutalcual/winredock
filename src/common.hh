@@ -57,10 +57,11 @@
 
 #ifdef WITH_LOG
 #define logp(p, str) mcm::sys::log << "[" << __FILE__	\
-	<< ":" << __LINE__ << "] " << str << std::endl
-#define logf() mcm::sys::log << "[" << __FILE__							\
-	<< ":" << __LINE__ << ": "											\
-	<< __PRETTY_FUNCTION__ << "] " << std::endl
+	<< ":" << __LINE__ << "] " << mcm::sys::log_tabs::tabs << str << std::endl
+#define logf() mcm::sys::log_tabs t___; \
+	mcm::sys::log << "[" << __FILE__ \
+	<< ":" << __LINE__ << "] " \
+	<< __PRETTY_FUNCTION__ << std::endl
 #define nlogp(p, str)
 #define nlogf()
 #else
@@ -111,6 +112,23 @@ namespace mcm {
 #ifdef WITH_LOG
 		extern std::ofstream log;
 #endif
+
+		class log_tabs
+		{
+		public:
+			static std::string tabs;
+			log_tabs ()
+			{
+				tabs += "  ";
+			}
+			~log_tabs ()
+			{
+				if (tabs.size())
+					tabs = tabs.substr(0, tabs.size() - 2);
+			}
+		};
+
+		std::ostream & operator << (std::ostream & o, log_tabs & l);
 
 		template<typename Type>
 		Type amin (Type a, Type b)

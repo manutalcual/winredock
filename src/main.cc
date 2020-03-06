@@ -54,8 +54,9 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 				(CS_HREDRAW | CS_VREDRAW),
 				c_window_title>
 		app (hInstance, hPrevInstance, args, iCmdShow);
-	g_app = &app; // for WndProc
+	g_app = &app; // global for use by WndProc
 
+	logp (sys::e_debug, "Setting windows message handlers");
 	app[WM_CREATE] =
 		[&app](HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 			logf ();
@@ -65,6 +66,14 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 					//positioner.reposition ();
 					return app;
 				}) // Context menus and functions
+				/*
+				  There is no use for menu entries.
+				  In previous versions window repositioning was done
+				  by menu clicking, now it is automatic, so these
+				  are no more useful. I left them here just becaus I
+				  have some plans for the future that involve menu
+				  handling and I don´t want to rewrite them.
+				 */
 				.add_menu_item(MF_STRING,
 							   ID_TRAY_LOAD_WINDOWS_MENU,
 							   TEXT("Get windows"),
@@ -91,6 +100,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 								   return app;
 							   })
 				.add_menu_item(MF_SEPARATOR, 0, NULL)
+				/* Exit menu does something */
 				.add_menu_item(MF_STRING,
 							   ID_TRAY_EXIT_CONTEXT_MENU_ITEM,
 							   TEXT("Exit"),
@@ -102,6 +112,10 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 				.register_all_guids ();
 			return app;
 		};
+
+	/*
+	  These are Windows operating system messages we react on.
+	*/
 
 	app[WM_SYSCOMMAND] =
 		[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
@@ -127,6 +141,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 
 	app[WM_TRAYICON] =
 		[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
+			/* Traybar icon clicks and so */
 			logf ();
 			POINT curPoint;
 			GetCursorPos (&curPoint);
@@ -164,11 +179,12 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 
 LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	nlogp (sys::e_debug, "Message received: "
+	logf ();
+	logp (sys::e_debug, "Message received: "
 		  << message << ", "
-		  << wParam << ", " << lParam << "'.");
+		  << wParam << ", " << lParam << ".");
 	LRESULT r = g_app->handle (hwnd, message, wParam, lParam);
-	nlogp (sys::e_debug, "Return from handled: "
+	logp (sys::e_debug, "Return from handled: "
 		  << r);
 	return r;
 }
