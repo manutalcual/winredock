@@ -47,10 +47,10 @@ namespace mcm {
 			return num;
 		}
 
-		std::string itoa (int i)
+		std::string itoa (size_t i)
 		{
 			char buf[124];
-			::sprintf (buf, "%d", i);
+			::sprintf (buf, "%Id", i);
 			return buf;
 		}
 
@@ -97,7 +97,7 @@ namespace mcm {
 			_good = true;
 		}
 
-		char & file_t::operator [] (int i)
+		char & file_t::operator [] (size_t i)
 		{
 			return _buf[i];
 		}

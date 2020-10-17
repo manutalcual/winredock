@@ -53,16 +53,36 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 
 	::memset (class_name, 0, BUF_SIZE);
 
-	logp (sys::e_debug, "--- Enum " << ++count << " ---");
+	bool visible = IsWindowVisible(hwnd);
+	bool alt_tab_win = is_alt_tab_window(hwnd);
+	bool iconic = IsIconic(hwnd);
+	bool zoomed = IsZoomed(hwnd);
+	LONG_PTR exStyles = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+	LONG_PTR styles = GetWindowLongPtr(hwnd, GWL_STYLE);
+
+	nlogp (sys::e_debug, "--- Enum " << ++count << " ---");
 	mcm::poshandler::get_class_name (hwnd, (LPSTR)class_name, BUF_SIZE);
-	logp (sys::e_debug, "Window visible: " << IsWindowVisible(hwnd)
-		  << ", zoomed " << IsZoomed(hwnd)
-		  << ", iconic " << IsIconic(hwnd));
+	bool frame_win = mcm::poshandler::discard_window_app_frame((const char*)class_name,
+		::strlen(class_name));
+	if ((styles & WS_POPUP) && !(exStyles & WS_EX_TOOLWINDOW) && visible) {
+		alt_tab_win = true;
+		frame_win = false;
+	}
+	nlogp(sys::e_debug, "-- Window "
+		<< std::hex << hwnd << std::dec
+		<< " '" << class_name
+		<< "': visible " << visible
+		<< ", alt tab " << alt_tab_win
+		<< ", frame " << frame_win
+		<< ", popup " << (styles & WS_POPUP)
+		<< ", toolwin " << (exStyles & WS_EX_TOOLWINDOW)
+		<< ", noactivate " << (exStyles & WS_EX_NOACTIVATE)
+		<< ", zoomed " << zoomed
+		<< ", iconic " << iconic);
 	nlogp (sys::e_debug, "Enum: Get class name: '" << class_name << "'");
 
-    if (is_alt_tab_window(hwnd) && IsWindowVisible(hwnd)) {
-		if (mcm::poshandler::discard_window_app_frame((const char *)class_name,
-															   ::strlen(class_name)))
+	if (alt_tab_win && visible && !(exStyles & WS_EX_NOACTIVATE)) {
+		if (frame_win)
 		{
 			nlogp (sys::e_debug, "Discarding window (because it is an app frame).");
 			nlogp (sys::e_debug, "    " << class_name);
@@ -95,13 +115,19 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 						   || win._place.rcNormalPosition.bottom < d._top
 						   || win._place.rcNormalPosition.right < d._left
 						   || win._place.rcNormalPosition.left > d._right);
-		logp (sys::e_debug, "Window monitor info: top "
-			  << mi.rcMonitor.top << ", left "
-			  << mi.rcMonitor.left << ", right "
-			  << mi.rcMonitor.right << ", bottom "
-			  << mi.rcMonitor.bottom << ", primary? "
-			  << mi.dwFlags);
-		logp (sys::e_debug, "Window class " << class_name << " position: top "
+		logp (sys::e_debug, "-- Window "
+			<< std::hex << hwnd << std::dec
+			<< " '" << class_name
+			<< "'");
+		logp (sys::e_debug, "     visible " << visible
+			<< ", alt tab " << alt_tab_win
+			<< ", frame " << frame_win
+			<< ", popup " << (styles & WS_POPUP)
+			<< ", toolwin " << (exStyles & WS_EX_TOOLWINDOW)
+			<< ", noactivate " << (exStyles & WS_EX_NOACTIVATE)
+			<< ", zoomed " << zoomed
+			<< ", iconic " << iconic);
+		logp (sys::e_debug, "     position: top "
 			  << win._place.rcNormalPosition.top << ", left "
 			  << win._place.rcNormalPosition.left << ", right "
 			  << win._place.rcNormalPosition.right << ", bottom "
@@ -117,7 +143,7 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 		//show_status (win._place.showCmd);
 		//show_position (&win._place.rcNormalPosition);
 	} else {
-		logp (sys::e_debug, "Window is not alt-tab and/or not visible. (" << class_name << ")");
+		nlogp (sys::e_debug, "Window is not alt-tab and/or not visible. (" << class_name << ")");
 	}
     return TRUE;
 }
@@ -143,17 +169,18 @@ namespace mcm {
 	poshandler::poshandler ()
 		: _clearing (false)
 	{
-		logf ();
+		nlogf ();
 		EnumWindows (&Enum, (LPARAM)&_windows);
 	}
 
 	void poshandler::get_windows ()
 	{
-		logf ();
+		nlogf ();
 		if (_clearing) {
 			logp (sys::e_debug, "We are clearing, don't get more windows");
 			return;
 		}
+		mcm::sys::elapsed_t get_timer("get_windows");
 		logp (sys::e_debug, "Getting current desktop windows. (clearing windows map)");
 		_clearing = true;
 		_windows.clear ();
@@ -186,7 +213,7 @@ namespace mcm {
 
 	void poshandler::reposition ()
 	{
-		logf ();
+		nlogf ();
 		if (_clearing) {
 			size_t clearing_count = 0;
 			while (_clearing and ++clearing_count < 1000)
@@ -233,13 +260,13 @@ namespace mcm {
 
 	void poshandler::remove_window (HWND & hwnd)
 	{
-		logf ();
+		nlogf ();
 		logp (sys::e_debug, "Remove windows does nothing actually");
 	}
 
 	void poshandler::uniform_windows (poshandler & pos)
 	{
-		logf ();
+		nlogf ();
 		if (_clearing) {
 			logp (sys::e_debug, "There is a clearing ongoing so no uniform windows");
 			return;
@@ -271,7 +298,7 @@ namespace mcm {
 	}
 	void poshandler::uniform_windows ()
 	{
-		logf ();
+		nlogf ();
 		if (_clearing) {
 			logp (sys::e_debug, "no uniform windows as we are clearing windows map");
 			return;
@@ -367,12 +394,20 @@ namespace mcm {
 		std::string sum;
 
 		sum = buf;
-
-		logp (sys::e_debug, "Window class name: " << sum);
+		
+		nlogp (sys::e_debug, "Window class name: " << sum);
 		if (title_length) {
+#ifdef _DEBUG
+			std::string tmp;
+			nlogp (sys::e_debug, "  window title: " << window_title);
+			tmp = window_title;
+			tmp += " (class: ";
+			sum = tmp + sum;
+			sum += ")";
+#else
 			rot_2 r(window_title);
-			logp (sys::e_debug, "  window title: " << window_title);
 			sum += r;
+#endif
 			::strncpy (buf, sum.c_str(), sum.size());
 		}
 

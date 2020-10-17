@@ -42,7 +42,9 @@ namespace mcm {
 	extern GUID power;
 
 	using Func = std::function<DWORD(HWND, UINT, WPARAM, LPARAM)>;
-	using FuncProc = LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM);
+	//using FuncProc = LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM);
+	using FuncProc = LRESULT (*)(HWND, UINT, WPARAM, LPARAM);
+	//typedef LRESULT (*FuncProc)(HWND, UINT, WPARAM, LPARAM); // CALLBACK
 	extern Func noop; // = [](HWND, UINT, WPARAM, LPARAM) -> DWORD
 
 	const char * get_msg (UINT msg);
@@ -90,7 +92,7 @@ namespace mcm {
 			  _repositioned (true),
 			  _powersetting (false)
 		{
-			logf ();
+			nlogf ();
 			_class.lpszClassName = ClassName;
 			_class.lpfnWndProc = WndProc;
 			_class.style = Style;
@@ -116,7 +118,7 @@ namespace mcm {
 
 		~window ()
 		{
-			logf ();
+			nlogf ();
 			if( !IsWindowVisible(_hwnd)) {
 				Shell_NotifyIcon (NIM_DELETE, &_notify_icon_data);
 			}
@@ -139,13 +141,13 @@ namespace mcm {
 
 		bool create ()
 		{
-			logf ();
-			_hwnd = CreateWindowEx(
+			nlogf ();
+			_hwnd = CreateWindowExA(
 				0, ClassName,
 				WindowTitle,
-				WS_OVERLAPPEDWINDOW /*| WS_VISIBLE */,
+				WS_OVERLAPPEDWINDOW /*| WS_VISIBLE */
 				/* CW_USEDEFAULT, CW_USEDEFAULT, */
-				0, 0,
+				,0, 0,
 				400, 400,
 				NULL, NULL,
 				_instance, NULL);
@@ -154,7 +156,7 @@ namespace mcm {
 
 		window & register_for_taskbar_message ()
 		{
-			logp (sys::e_debug, "Registering taskbar creation message.");
+			nlogp (sys::e_debug, "Registering taskbar creation message.");
 			_taskbar_created_msg = RegisterWindowMessageA("TaskbarCreated");
 			return *this;
 		}
@@ -165,8 +167,8 @@ namespace mcm {
 				 const char * IconText>
 		window & add_taskbar_icon ()
 		{
-			logf ();
-			logp (ss::e_debug, "Adding taskbar icon");
+			nlogf ();
+			nlogp (ss::e_debug, "Adding taskbar icon");
 			_notify_icon_data.cbSize = sizeof(NOTIFYICONDATA);
 			_notify_icon_data.hWnd = _hwnd;
 			_notify_icon_data.uID = AppIcon; //ID_TRAY_APP_ICON;
@@ -181,8 +183,8 @@ namespace mcm {
 
 		void register_all_guids ()
 		{
-			logf ();
-			CONFIGRET ret;
+			nlogf ();
+			CONFIGRET ret { 0 };
 
 			logp (sys::e_debug, "Eumerate GUIDs.");
 			for (size_t i = 0; ret != CR_NO_SUCH_VALUE; ++i) {
@@ -195,7 +197,7 @@ namespace mcm {
 					register_notification (&guid);
 				}
 			}
-			_timer = SetTimer (_hwnd, 1, 1000, (TIMERPROC)NULL);
+			_timer = SetTimer (_hwnd, 1, 1500, (TIMERPROC)NULL);
 			if (! _timer) {
 				logp (sys::e_debug, "Can't create timer.");
 			} else {
@@ -206,7 +208,7 @@ namespace mcm {
 
 		LRESULT handle (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
-			logf ();
+			nlogf ();
 			logp (sys::e_debug, "Message received: "
 				  << message
 				  << "='" << get_msg(message) << "', "
@@ -419,7 +421,7 @@ namespace mcm {
 
 		window & minimize ()
 		{
-			logf ();
+			nlogf ();
 			Shell_NotifyIcon (NIM_ADD, &_notify_icon_data);
 			ShowWindow (_hwnd, SW_HIDE);
 			return *this;
@@ -427,7 +429,7 @@ namespace mcm {
 
 		window & restore ()
 		{
-			logf ();
+			nlogf ();
 			ShowWindow (_hwnd, SW_SHOW);
 			return *this;
 		}
@@ -435,7 +437,7 @@ namespace mcm {
 
 		window & create_menu (Func func)
 		{
-			logf ();
+			nlogf ();
 			_menu = CreatePopupMenu();
 			_icon_click = func;
 			return *this;

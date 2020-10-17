@@ -39,6 +39,7 @@
 #include <iostream>
 #include <map>
 #include <fstream>
+#include <chrono>
 
 #include <windows.h>
 #include <shlobj.h>
@@ -145,7 +146,31 @@ namespace mcm {
 		};
 
 		int atoi (std::string & str);
-		std::string itoa (int str);
+		std::string itoa (size_t str);
+
+		class elapsed_t
+		{
+		public:
+			elapsed_t(const char* name)
+				: _name(name)
+			{
+				_time_ini = std::chrono::duration_cast<std::chrono::milliseconds>(
+					std::chrono::system_clock::now().time_since_epoch())
+					.count();
+				logp(sys::e_debug, "Count time in '" << _name << "' begining at " << _time_ini << ".");
+			}
+			~elapsed_t() {
+				size_t timefin = std::chrono::duration_cast<std::chrono::milliseconds>(
+					std::chrono::system_clock::now().time_since_epoch())
+					.count();
+				size_t wait_time = timefin - _time_ini;
+				logp(sys::e_debug, "Elapsed time in '" << _name << "': " << wait_time
+					<< " (init at " << _time_ini << ")");
+			}
+		private:
+			const char* _name;
+			size_t _time_ini;
+		};
 
 		class stat_t
 		{
@@ -164,7 +189,7 @@ namespace mcm {
 			~file_t () { if (_file) ::fclose(_file); }
 			operator bool () { return _good; }
 			size_t size () { return _size; }
-			char & operator [] (int i);
+			char & operator [] (size_t i);
 		private:
 			bool _good;
 			FILE * _file;
@@ -216,6 +241,7 @@ namespace mcm {
 			std::string msg{_msg};
 			msg += (char *)_lpMsgBuf;
 			FatalAppExit (0, TEXT(msg.c_str()));
+			//FatalAppExit(0, (msg.c_str()));
 			return *this; // this will never be reached!
 		}
 	private:

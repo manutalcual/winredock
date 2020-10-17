@@ -26,9 +26,9 @@
 #include "main.hh"
 #include "dev.hh"
 
-const char c_class_name[] = "WinReDock";
-const char c_window_title[] = "WinReDock - restore windows to pre-undock positions";
-const char c_taskbar_icon_text[] = "WinReDock -- tooling; dockerify after undock!";
+constexpr const char c_class_name[] = "WinReDock";
+constexpr const char c_window_title[] = "WinReDock - restore windows to pre-undock positions";
+constexpr const char c_taskbar_icon_text[] = "WinReDock -- tooling; dockerify after undock!";
 mcm::window<c_class_name,
 			WndProc,
 			(CS_HREDRAW | CS_VREDRAW),
@@ -59,7 +59,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 	logp (sys::e_debug, "Setting windows message handlers");
 	app[WM_CREATE] =
 		[&app](HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-			logf ();
+			nlogf ();
 			app.create_menu (
 				// Context left click function
 				[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
@@ -119,7 +119,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 
 	app[WM_SYSCOMMAND] =
 		[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-			logf ();
+			nlogf ();
 			switch (wParam & 0xfff0) {
 			case SC_MINIMIZE:
 			case SC_CLOSE:
@@ -131,8 +131,8 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 
 	app[WM_NCHITTEST] =
 		[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-			logf ();
-			UINT uHitTest = DefWindowProc(hwnd, WM_NCHITTEST, wParam, lParam);
+			nlogf ();
+			LRESULT uHitTest = DefWindowProc(hwnd, WM_NCHITTEST, wParam, lParam);
 			if(uHitTest == HTCLIENT)
 				return HTCAPTION;
 			else
@@ -142,7 +142,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 	app[WM_TRAYICON] =
 		[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 			/* Traybar icon clicks and so */
-			logf ();
+			nlogf ();
 			POINT curPoint;
 			GetCursorPos (&curPoint);
 			SetForegroundWindow (hwnd);
@@ -174,17 +174,17 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 
 	logp (sys::e_debug, "En creations, begin the main loop.");
 
-	return app.loop(); //msg.wParam;
+	return (int)app.loop(); //msg.wParam;
 }
 
 LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	logf ();
-	logp (sys::e_debug, "Message received: "
+	nlogf ();
+	nlogp (sys::e_debug, "Message received: "
 		  << message << ", "
 		  << wParam << ", " << lParam << ".");
 	LRESULT r = g_app->handle (hwnd, message, wParam, lParam);
-	logp (sys::e_debug, "Return from handled: "
+	nlogp (sys::e_debug, "Return from handled: "
 		  << r);
 	return r;
 }
