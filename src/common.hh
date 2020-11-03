@@ -82,30 +82,24 @@ public:
 	public:
 		WINDOWPLACEMENT _place;
 		HMONITOR _hmon;
+		int _dpi;
 	};
 	typedef std::map<std::string, win_t::place_t> places_t;
-	HWND _hwnd;
-	HDC _hdc;
-	WINDOWPLACEMENT _place;
+	HWND _hwnd{ 0 };
+	WINDOWPLACEMENT _last_place{ 0 };
 	places_t _places;
-	bool _deserialized;
 	std::string _title;
 	std::string _class_name;
-	bool _erase;
-	bool _off_screen;
-
+	int _last_dpi{ 0 };
+	bool _erase{ false };
+	
 	win_t ()
-		: _hwnd{},
-		  _deserialized{},
-		  _erase{},
-		  _off_screen{}
 	{}
 	~win_t ()
-	{
-		ReleaseDC(_hwnd, _hdc);
-	}
+	{}
 };
 typedef std::map<HWND, win_t> mapwin_t;
+typedef std::map<std::string, std::string> mapresolutions_t;
 
 namespace mcm {
 	namespace sys {

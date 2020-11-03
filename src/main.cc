@@ -29,12 +29,7 @@
 constexpr const char c_class_name[] = "WinReDock";
 constexpr const char c_window_title[] = "WinReDock - restore windows to pre-undock positions";
 constexpr const char c_taskbar_icon_text[] = "WinReDock -- tooling; dockerify after undock!";
-mcm::window<c_class_name,
-			WndProc,
-			(CS_HREDRAW | CS_VREDRAW),
-			c_window_title> * g_app = nullptr;
-
-std::string file_name{"window_list.json"};
+mcm::window * g_app = nullptr;
 
 int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, int iCmdShow )
 {
@@ -47,13 +42,11 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 		FatalAppExit (0, TEXT("Can't change working dir."));
 	}
 
-	file_name  = changedir.path() + "\\" + file_name;
-
-	mcm::window<c_class_name,
-				WndProc,
-				(CS_HREDRAW | CS_VREDRAW),
-				c_window_title>
-		app (hInstance, hPrevInstance, args, iCmdShow);
+	mcm::window	app (c_class_name,
+			WndProc,
+			(CS_HREDRAW | CS_VREDRAW),
+			c_window_title,
+			hInstance, hPrevInstance, args, iCmdShow);
 	g_app = &app; // global for use by WndProc
 
 	logp (sys::e_debug, "Setting windows message handlers");
@@ -63,43 +56,8 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 			app.create_menu (
 				// Context left click function
 				[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-					//positioner.reposition ();
 					return app;
 				}) // Context menus and functions
-				/*
-				  There is no use for menu entries.
-				  In previous versions window repositioning was done
-				  by menu clicking, now it is automatic, so these
-				  are no more useful. I left them here just becaus I
-				  have some plans for the future that involve menu
-				  handling and I don´t want to rewrite them.
-				 */
-				.add_menu_item(MF_STRING,
-							   ID_TRAY_LOAD_WINDOWS_MENU,
-							   TEXT("Get windows"),
-							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-								   logp (sys::e_debug, "Call to load windows.");
-								   //positioner.get_windows ();
-								   return app;
-							   })
-				.add_menu_item(MF_STRING,
-							   ID_TRAY_SAVE_MENU,
-							   TEXT("Save config."),
-							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-								   logp (sys::e_debug, "Calling to serialize data.");
-								   //positioner.save_configuration (file_name);
-								   logp (sys::e_debug, "Ok. Done.");
-								   return app;
-							   })
-				.add_menu_item(MF_STRING,
-							   ID_TRAY_LOAD_MENU,
-							   TEXT("Read config."),
-							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-								   logp (sys::e_debug, "Calling to read file.");
-								   //positioner.load_configuration (file_name);
-								   return app;
-							   })
-				.add_menu_item(MF_SEPARATOR, 0, NULL)
 				/* Exit menu does something */
 				.add_menu_item(MF_STRING,
 							   ID_TRAY_EXIT_CONTEXT_MENU_ITEM,

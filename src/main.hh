@@ -24,7 +24,6 @@
 // Includes
 //
 #include "common.hh"
-#include "deserializer.hh"
 #include "window.hh"
 #include "poshandler.hh"
 

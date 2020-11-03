@@ -36,6 +36,7 @@ namespace mcm {
 		const char * text;
 	} XMSGITEM;
 
+
 	XMSGITEM xmsglist[] =
 	{
 		{ 0, "WM_NULL"},

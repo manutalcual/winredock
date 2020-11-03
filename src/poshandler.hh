@@ -23,7 +23,6 @@
 #ifndef poshandler_hh
 #define poshandler_hh
 #include "common.hh"
-#include "serializer.hh"
 #include "dev.hh"
 
 BOOL is_alt_tab_window (HWND hwnd);
@@ -43,24 +42,51 @@ namespace mcm {
 			std::string _str;
 		};
 	public:
+		class handler_ref_t
+		{
+		public:
+			handler_ref_t(mapwin_t& mapwin, bool changing)
+				: _windows (mapwin),
+				_changing (changing)
+			{}
+			mapwin_t& _windows;
+			bool _changing{ false };
+		private:
+		};
+
+		class conf_t
+		{
+		public:
+			conf_t() {
+				dev d;
+				_cname = mcm::sys::itoa(d.width());
+				_cname += "_";
+				_cname += mcm::sys::itoa(d.height());
+				_cname += "_";
+				_cname += mcm::sys::itoa(d.monitors());
+			}
+			operator std::string () { return _cname; }
+		private:
+			std::string _cname;
+		};
+
 		poshandler ();
+		bool has_resolution(const std::string& conf);
 		void reposition ();
 		void get_windows ();
-		void save_configuration (std::string file_name);
-		void load_configuration (std::string file_name);
 		bool window_exist (HWND & hwnd);
 		void remove_window (HWND & hwnd);
-		void uniform_windows (poshandler & pos);
-		void uniform_windows ();
+		void changing_resolution(const bool& mode) { _changing_resolution = mode; };
 
 		static bool get_class_name (HWND hwnd, LPSTR buf, INT buf_size);
 		static bool discard_window_app_frame (const char * class_name, INT buf_size);
 		static bool get_window_placement (HWND hwnd, WINDOWPLACEMENT & place);
 
 	private:
-		volatile bool _clearing;
 		mapwin_t _windows;
+		mapresolutions_t _resolutions;
 		dev _screen_size;
+		bool _changing_resolution{ false };
 	};
 } // namespace mcm
 #endif // posthandler_hh

@@ -67,6 +67,7 @@ namespace mcm {
 		file_t::file_t (std::string file_name)
 			: _good (false),
 			  _file (::fopen(file_name.c_str(), "r")),
+			  _size (0),
 			  _buf (nullptr)
 		{
 			nlogf ();

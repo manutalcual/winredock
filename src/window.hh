@@ -53,10 +53,6 @@ namespace mcm {
 
 	void Timerproc (HWND Arg1, UINT Arg2, UINT_PTR Arg3, DWORD Arg4);
 
-	template<const char * ClassName,
-			 FuncProc WndProc,
-			 int Style,
-			 const char * WindowTitle>
 	class window
 	{
 		class callable
@@ -73,7 +69,11 @@ namespace mcm {
 		};
 
 	public:
-		window (HINSTANCE instance,
+		window (const char* class_name,
+				FuncProc WndProc,
+				int Style,
+				const char* window_title,
+				HINSTANCE instance,
 				HINSTANCE previous,
 				LPSTR args,
 				int cmdShow)
@@ -83,6 +83,8 @@ namespace mcm {
 			  _args (args),
 			  _cmd_show (cmdShow),
 			  _hwnd{0},
+			  _class_name (class_name),
+			  _window_title (window_title),
 			  _taskbar_created_msg{0},
 			  _menu{0},
 			  _notify_icon_data{0},
@@ -93,7 +95,7 @@ namespace mcm {
 			  _powersetting (false)
 		{
 			nlogf ();
-			_class.lpszClassName = ClassName;
+			_class.lpszClassName = _class_name;
 			_class.lpfnWndProc = WndProc;
 			_class.style = Style;
 			_class.cbSize = sizeof(WNDCLASSEX);
@@ -143,8 +145,8 @@ namespace mcm {
 		{
 			nlogf ();
 			_hwnd = CreateWindowExA(
-				0, ClassName,
-				WindowTitle,
+				0, _class_name,
+				_window_title,
 				WS_OVERLAPPEDWINDOW /*| WS_VISIBLE */
 				/* CW_USEDEFAULT, CW_USEDEFAULT, */
 				,0, 0,
@@ -230,7 +232,7 @@ namespace mcm {
 				config_name += sys::itoa(d.monitors());
 				logp (sys::e_debug, "** Initial configuration name: '"
 					  << config_name << "'.");
-				_repos[config_name].get_windows ();
+				_repo.get_windows ();
 				_last_screen = d;
 				logp (sys::e_debug, "--------------------------------");
 				_ready = true;
@@ -242,8 +244,9 @@ namespace mcm {
 				if (! _funcmap[message] (hwnd, message, wParam, lParam)) {
 					logp (sys::e_debug, "Error handling message: " << message << ".");
 				}
-			}
+				_changing_resolution = false;
 				break;
+			}
 			case WM_SYSCOMMAND:
 				logp (sys::e_debug, "WM_SYSCOMMAND message received.");
 				if (! _funcmap[message] (hwnd, message, wParam, lParam)) {
@@ -288,76 +291,48 @@ namespace mcm {
 				break;
 			case WM_DISPLAYCHANGE: {
 				logp (sys::e_debug, "WM_DISPLAYCHANGE message received.");
-				dev d;
-				std::string config_name = mcm::sys::itoa(d.width());
-				config_name += "_";
-				config_name += mcm::sys::itoa(d.height());
-				config_name += "_";
-				config_name += mcm::sys::itoa(d.monitors());
-				logp (sys::e_debug, "Current configuration: " << config_name);
-			}
+				_changing_resolution = true;
+				_repo.changing_resolution(_changing_resolution);
+				mcm::poshandler::conf_t config_name;
+				logp (sys::e_debug, "Current configuration: " << static_cast<std::string>(config_name));
 				break;
+			}
 			case WM_TIMER: {
 				logp (sys::e_debug, "Receive WM_TIMER event.");
-				logp (sys::e_debug, "Actual screen: ");
+				logp(sys:::e_debug, "Last screen: ");
+				_last_screen.print();
 				dev d;
+				logp(sys::e_debug, "Current screen: ");
 				d.print ();
-				logp (sys:::e_debug, "Last screen: ");
-				_last_screen.print ();
-				if (d != _last_screen) {
-					logp (sys::e_debug, "Changing resolution.");
-					std::string config_name = sys::itoa(d.width());
-					config_name += "_";
-					config_name += sys::itoa(d.height());
-					config_name += "_";
-					config_name += sys::itoa(d.monitors());
-					if (_repos.find(config_name) != _repos.end()) {
-						poshandler & repo = _repos[config_name];
-						nlogp (sys::e_debug, "Uniforming windows: '"
-							  << config_name << "'.");
-						/*
-						for (auto & r : _repos) {
-							if (r.first != config_name)
-								r.second.uniform_windows (repo);
-						}
-						*/
-						logp (sys::e_debug, "Repositioning windows: '"
-							  << config_name << "'.");
-						_repos[config_name].reposition ();
-					} else {
-						logp (sys::e_debug, "Getting new configuration: '"
-							  << config_name << "'.");
-						_repos[config_name].get_windows ();
-					}
+				mcm::poshandler::conf_t config_name;
+				if (! _repo.has_resolution(config_name)) {
+					logp(sys::e_debug, "[0] New resolution.");
+					_changing_resolution = false;
+					_repo.changing_resolution(_changing_resolution);
+					_repo.get_windows();
 					_last_screen = d;
 					_screen_size = d;
-					logp (sys::e_debug, "Last screen set to: ");
-					_last_screen.print ();
-				} else if (d == _last_screen) {
-					std::string config_name = sys::itoa(d.width());
-					config_name += "_";
-					config_name += sys::itoa(d.height());
-					config_name += "_";
-					config_name += sys::itoa(d.monitors());
-					logp (sys::e_debug, "Getting configuration: '"
-						  << config_name << "'.");
-					_repos[config_name].get_windows ();
+				} else if (_changing_resolution) {
+					logp(sys::e_debug, "[1] Changing resolution.");
+					_repo.reposition();
 					_last_screen = d;
-				} else if (d == _screen_size && _changing_resolution) {
-					std::string config_name = sys::itoa(d.width());
-					config_name += "_";
-					config_name += sys::itoa(d.height());
-					config_name += "_";
-					config_name += sys::itoa(d.monitors());
-					logp (sys::e_debug,
-						  "Getting configuration with spurious device notification: '"
-						  << config_name << "'.");
-					_repos[config_name].get_windows ();
+					_screen_size = d;
+					_changing_resolution = false;
+					_repo.changing_resolution(_changing_resolution);
+				} else if (d != _last_screen) {
+					logp (sys::e_debug, "[2] Changing resolution (spurious.)");
+					_repo.reposition ();
+					_last_screen = d;
+					_screen_size = d;
+					_changing_resolution = false;
+					_repo.changing_resolution(_changing_resolution);
+				} else if (d == _last_screen) {
+					_repo.get_windows ();
 					_last_screen = d;
 				}
 				return 0;
-			}
 				break;
+			}
 			case WM_DEVICECHANGE: {
 				logp (sys::e_debug, "WM_DEVICECHANGE received!!!!");
 				// Output some messages to the window.
@@ -390,14 +365,14 @@ namespace mcm {
 						config_name += mcm::sys::itoa(d.monitors());
 						logp (sys::e_debug, "Current configuration: " << config_name);
 					}
-				}
 					break;
+				}
 				default:
 					logp(sys::e_debug, "Message " << wParam << " unhandled: WM_DEVICECHANGE");
 					break;
 				}
-			}
 				break;
+			}
 			case WM_POWERBROADCAST: {
 				logp (sys::e_debug, "Received a WM_POWERBROADCAST");
 				//_powersetting = !_powersetting;
@@ -408,8 +383,8 @@ namespace mcm {
 					break;
 				}
 				}
-			}
 				break;
+			}
 			default:
 				nlogp (sys::e_debug, "Not handled message: " << message);
 				break;
@@ -491,6 +466,8 @@ namespace mcm {
 		LPSTR _args;
 		int _cmd_show;
 		HWND _hwnd;
+		const char* _class_name;
+		const char* _window_title;
 		UINT _taskbar_created_msg;
 		HMENU _menu;
 		NOTIFYICONDATA _notify_icon_data;
@@ -503,7 +480,8 @@ namespace mcm {
 		UINT_PTR _timer;
 		bool _changing_resolution;
 		bool _repositioned;
-		maprepohandlers_t _repos;
+		//maprepohandlers_t _repos;
+		mcm::poshandler _repo;
 		bool _powersetting;
 
 		bool register_notification (GUID * guid)

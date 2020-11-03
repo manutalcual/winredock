@@ -20,13 +20,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\common.hh" />
-    <ClInclude Include="..\src\deserializer.hh" />
     <ClInclude Include="..\src\dev.hh" />
     <ClInclude Include="..\src\list.h" />
     <ClInclude Include="..\src\main.hh" />
     <ClInclude Include="..\src\poshandler.hh" />
     <ClInclude Include="..\src\resource.h" />
-    <ClInclude Include="..\src\serializer.hh" />
     <ClInclude Include="..\src\window.hh" />
   </ItemGroup>
   <ItemGroup>
@@ -37,11 +35,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\common.cc" />
-    <ClCompile Include="..\src\deserializer.cc" />
     <ClCompile Include="..\src\dev.cc" />
     <ClCompile Include="..\src\main.cc" />
     <ClCompile Include="..\src\poshandler.cc" />
-    <ClCompile Include="..\src\serializer.cc" />
     <ClCompile Include="..\src\window.cc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -101,6 +97,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -134,11 +131,14 @@
       <TreatWChar_tAsBuiltInType>false</TreatWChar_tAsBuiltInType>
       <BrowseInformation>true</BrowseInformation>
       <UseFullPaths>false</UseFullPaths>
+      <SupportJustMyCode>false</SupportJustMyCode>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ShowProgress>LinkVerbose</ShowProgress>
+      <ShowProgress>NotSet</ShowProgress>
       <GenerateMapFile>true</GenerateMapFile>
       <AdditionalDependencies>Cfgmgr32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
