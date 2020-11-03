@@ -218,7 +218,32 @@ namespace mcm {
 	bool poshandler::get_window_placement (HWND hwnd, WINDOWPLACEMENT & place)
 	{
 		place.length = sizeof(place);
-		return GetWindowPlacement(hwnd, &place);
+		DPI_AWARENESS_CONTEXT previousDpiContext = GetThreadDpiAwarenessContext();
+		DPI_AWARENESS_CONTEXT dpi_context = GetWindowDpiAwarenessContext(hwnd);
+		DPI_AWARENESS dpiAwareness = GetAwarenessFromDpiAwarenessContext(dpi_context);
+		switch (dpiAwareness) {
+			// Scale the window to the system DPI
+		case DPI_AWARENESS_SYSTEM_AWARE:
+			logp(sys::e_debug, "DPI System aware");
+			SetThreadDpiAwarenessContext(dpi_context);
+			break;
+			// Scale the window to the monitor DPI
+		case DPI_AWARENESS_PER_MONITOR_AWARE:
+			logp(sys::e_debug, "DPI Per monitor aware");
+			//SetThreadDpiAwarenessContext(dpi_context);
+			//uDpi = GetDpiForWindow(hwnd);
+			break;
+		case DPI_AWARENESS_UNAWARE:
+			logp(sys::e_debug, "DPI Unaware");
+			SetThreadDpiAwarenessContext(dpi_context);
+			break;
+		default:
+			logp(sys::e_debug, "DPI Unknown");
+			break;
+		}
+		bool ret = GetWindowPlacement(hwnd, &place);
+		SetThreadDpiAwarenessContext(previousDpiContext);
+		return ret;
 	}
 
 	bool poshandler::get_class_name (HWND hwnd, LPSTR buf, INT buf_size)
