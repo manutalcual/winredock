@@ -29,23 +29,27 @@ BOOL is_alt_tab_window(HWND hwnd)
 
     if(!(exStyles & WS_EX_APPWINDOW))
     {
+		nlogp(sys::_debug, "Not an APPWINDOW, getting ancestor.");
         hwndWalk = GetAncestor(hwnd, GA_ROOTOWNER);
     }
 
     HWND hwndTry = hwndWalk;
     while ((hwndTry = GetLastActivePopup(hwndWalk)) != hwndTry) {
-        if (IsWindowVisible(hwndTry))
+		if (IsWindowVisible(hwndTry)) {
+			nlogp(sys::e_debug, " this window is visible.");
 			break;
+		}
         hwndWalk = hwndTry;
     }
     // tool windows are treated as not visible, they'll appear in the
     // list
+	nlogp(sys::e_debug, "Return window info: " << (hwndWalk == hwnd) << ", " << (exStyles & WS_EX_TOOLWINDOW));
     return (hwndWalk == hwnd) && !(exStyles & WS_EX_TOOLWINDOW);
 }
 
-BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
+BOOL CALLBACK Enum(HWND hwnd, LPARAM lParam)
 {
-	nlogf ();
+	nlogf();
 	static size_t count = 0;
 	mcm::poshandler::handler_ref_t& poshand{ *((mcm::poshandler::handler_ref_t*)lParam) };
 
@@ -56,7 +60,7 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 
 	const int BUF_SIZE = 1024;
 	char class_name[BUF_SIZE];
-	::memset (class_name, 0, BUF_SIZE);
+	::memset(class_name, 0, BUF_SIZE);
 
 	mapwin_t& windows = poshand._windows;
 
@@ -67,14 +71,18 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 	LONG_PTR exStyles = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
 	LONG_PTR styles = GetWindowLongPtr(hwnd, GWL_STYLE);
 
-	nlogp (sys::e_debug, "--- Enum " << ++count << " ---");
-	mcm::poshandler::get_class_name (hwnd, (LPSTR)class_name, BUF_SIZE);
+	nlogp(sys::e_debug, "--- Enum " << ++count << " ---");
+	mcm::poshandler::get_class_name(hwnd, (LPSTR)class_name, BUF_SIZE);
 	bool frame_win = mcm::poshandler::discard_window_app_frame((const char*)class_name,
 		::strlen(class_name));
-	if ((styles & WS_POPUP) && !(exStyles & WS_EX_TOOLWINDOW) && visible) {
+	bool special{ false };
+#if 1
+	if ((styles& WS_POPUP) && !(exStyles& WS_EX_TOOLWINDOW) && visible) {
 		alt_tab_win = true;
 		frame_win = false;
+		special = true;
 	}
+#endif
 	nlogp(sys::e_debug, "-- Window "
 		<< std::hex << hwnd << std::dec
 		<< " '" << class_name
@@ -100,8 +108,63 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 			win._title = buf;
 			win._class_name = class_name;
 		}
+		logp(sys::e_debug, "-- Window "
+			<< std::hex << hwnd << std::dec
+			<< " '" << class_name
+			<< "'");
+		if (special) {
+			logp(sys::e_debug, "   this is a special window.");
+		}
+		nlogp(sys::e_debug, "WS_OVERLAPPED " << (WS_OVERLAPPED & styles));
+		nlogp(sys::e_debug, "WS_POPUP " << (WS_POPUP & styles));
+		nlogp(sys::e_debug, "WS_CHILD " << (WS_CHILD & styles));
+		nlogp(sys::e_debug, "WS_MINIMIZE " << (WS_MINIMIZE & styles));
+		nlogp(sys::e_debug, "WS_VISIBLE " << (WS_VISIBLE & styles));
+		nlogp(sys::e_debug, "WS_DISABLED " << (WS_DISABLED & styles));
+		nlogp(sys::e_debug, "WS_CLIPSIBLINGS " << (WS_CLIPSIBLINGS & styles));
+		nlogp(sys::e_debug, "WS_CLIPCHILDREN " << (WS_CLIPCHILDREN & styles));
+		nlogp(sys::e_debug, "WS_MAXIMIZE " << (WS_MAXIMIZE & styles));
+		nlogp(sys::e_debug, "WS_CAPTION " << (WS_CAPTION & styles));
+		nlogp(sys::e_debug, "WS_BORDER " << (WS_BORDER & styles));
+		nlogp(sys::e_debug, "WS_DLGFRAME " << (WS_DLGFRAME & styles));
+		nlogp(sys::e_debug, "WS_VSCROLL " << (WS_VSCROLL & styles));
+		nlogp(sys::e_debug, "WS_HSCROLL " << (WS_HSCROLL & styles));
+		nlogp(sys::e_debug, "WS_SYSMENU " << (WS_SYSMENU & styles));
+		nlogp(sys::e_debug, "WS_THICKFRAME " << (WS_THICKFRAME & styles));
+		nlogp(sys::e_debug, "WS_GROUP " << (WS_GROUP & styles));
+		nlogp(sys::e_debug, "WS_TABSTOP " << (WS_TABSTOP & styles));
+		nlogp(sys::e_debug, "WS_MINIMIZEBOX " << (WS_MINIMIZEBOX & styles));
+		nlogp(sys::e_debug, "WS_MAXIMIZEBOX " << (WS_MAXIMIZEBOX & styles));
+
+		nlogp(sys::e_debug, "WS_EX_DLGMODALFRAME " << (WS_EX_DLGMODALFRAME & exStyles));
+		nlogp(sys::e_debug, "WS_EX_NOPARENTNOTIFY " << (WS_EX_NOPARENTNOTIFY & exStyles));
+		nlogp(sys::e_debug, "WS_EX_TOPMOST " << (WS_EX_TOPMOST & exStyles));
+		nlogp(sys::e_debug, "WS_EX_ACCEPTFILES " << (WS_EX_ACCEPTFILES & exStyles));
+		nlogp(sys::e_debug, "WS_EX_TRANSPARENT " << (WS_EX_TRANSPARENT & exStyles));
+		nlogp(sys::e_debug, "WS_EX_MDICHILD " << (WS_EX_MDICHILD & exStyles));
+		nlogp(sys::e_debug, "WS_EX_TOOLWINDOW " << (WS_EX_TOOLWINDOW & exStyles));
+		nlogp(sys::e_debug, "WS_EX_WINDOWEDGE " << (WS_EX_WINDOWEDGE & exStyles));
+		nlogp(sys::e_debug, "WS_EX_CLIENTEDGE " << (WS_EX_CLIENTEDGE & exStyles));
+		nlogp(sys::e_debug, "WS_EX_CONTEXTHELP " << (WS_OVERLAPPED & exStyles));
+		nlogp(sys::e_debug, "WS_EX_RIGHT " << (WS_EX_RIGHT & exStyles));
+		nlogp(sys::e_debug, "WS_EX_LEFT " << (WS_EX_LEFT & exStyles));
+		nlogp(sys::e_debug, "WS_EX_RTLREADING " << (WS_EX_RTLREADING & exStyles));
+		nlogp(sys::e_debug, "WS_EX_LTRREADING " << (WS_EX_LTRREADING & exStyles));
+		nlogp(sys::e_debug, "WS_EX_LEFTSCROLLBAR " << (WS_EX_LEFTSCROLLBAR & exStyles));
+		nlogp(sys::e_debug, "WS_EX_RIGHTSCROLLBAR " << (WS_EX_RIGHTSCROLLBAR & exStyles));
+		nlogp(sys::e_debug, "WS_EX_CONTROLPARENT " << (WS_EX_CONTROLPARENT & exStyles));
+		nlogp(sys::e_debug, "WS_EX_STATICEDGE " << (WS_EX_STATICEDGE & exStyles));
+		nlogp(sys::e_debug, "WS_EX_APPWINDOW " << (WS_EX_APPWINDOW & exStyles));
+
+
 		mcm::poshandler::conf_t config_name;
 		mcm::poshandler::get_window_placement(win._hwnd, win._places[config_name]._place);
+		DPI_AWARENESS_CONTEXT dpi_context = GetWindowDpiAwarenessContext(hwnd);
+		DPI_AWARENESS dpiAwareness = GetAwarenessFromDpiAwarenessContext(dpi_context);
+
+		win._places[config_name]._dpi = GetDpiForWindow(win._hwnd);
+		win._places[config_name]._dpi_aware = dpiAwareness;
+		win._send_dpi = (WS_MINIMIZEBOX & styles) != 0;
 
 		HMONITOR hmon = MonitorFromRect(&win._places[config_name]._place.rcNormalPosition, MONITOR_DEFAULTTONULL);
 		MONITORINFO mi;
@@ -109,10 +172,6 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 		GetMonitorInfo(hmon, &mi);
 		win._places[config_name]._hmon = MonitorFromWindow(win._hwnd, MONITOR_DEFAULTTOPRIMARY);
 
-		logp(sys::e_debug, "-- Window "
-			<< std::hex << hwnd << std::dec
-			<< " '" << class_name
-			<< "'");
 		logp(sys::e_debug, "     visible " << visible
 			<< ", alt tab " << alt_tab_win
 			<< ", frame " << frame_win
@@ -173,31 +232,32 @@ namespace mcm {
 		nlogf ();
 		logp (sys::e_debug, "Repositioning.");
 		conf_t config_name;
+
 		for (auto win : _windows) {
-			logp (sys::e_debug, "Setting placement for '"
-				  << win.second._class_name << "': "
-				  << ", top " << win.second._places[config_name]._place.rcNormalPosition.top
-				  << ", left " << win.second._places[config_name]._place.rcNormalPosition.left
-				  << ", right " << win.second._places[config_name]._place.rcNormalPosition.right
-				  << ", bottom " << win.second._places[config_name]._place.rcNormalPosition.bottom);
-#if 0
-			if (win.second._places[config_name]._place.showCmd == SW_MAXIMIZE) {
-				WINDOWPLACEMENT wp = win.second._places[config_name]._place;
-				wp.showCmd = SW_RESTORE;
-				wp.flags = WPF_ASYNCWINDOWPLACEMENT;
-				SetWindowPlacement (win.second._hwnd, &wp);
-				//ShowWindow (win._hwnd, SW_RESTORE);
-				ShowWindow (win.second._hwnd, SW_HIDE);
-				ShowWindow (win.second._hwnd, SW_SHOW);
-			}
-#endif
-			if (! SetWindowPlacement(win.second._hwnd, &win.second._places[config_name]._place)) {
-				logp (sys::e_debug, "Can't set window placement for last window.");
-				win_error error ("Can't reposition window.");
-			} else {
-				//ShowWindow (win.second._hwnd, SW_HIDE);
-				//ShowWindow (win._hwnd, SW_RESTORE);
-				//ShowWindow (win.second._hwnd, SW_SHOW);
+			if (win.second._places[config_name]._dpi) {
+				logp(sys::e_debug, "Setting placement for '"
+					<< win.second._class_name
+					<< "; DPI " << win.second._places[config_name]._dpi
+					<< "': "
+					<< ", top " << win.second._places[config_name]._place.rcNormalPosition.top
+					<< ", left " << win.second._places[config_name]._place.rcNormalPosition.left
+					<< ", right " << win.second._places[config_name]._place.rcNormalPosition.right
+					<< ", bottom " << win.second._places[config_name]._place.rcNormalPosition.bottom);
+
+				if (!SetWindowPlacement(win.second._hwnd, &win.second._places[config_name]._place)) {
+					logp(sys::e_debug, "Can't set window placement for last window.");
+					win_error error("Can't reposition window.");
+				}
+				else if (win.second._send_dpi
+					&& win.second._places[config_name]._dpi != 96
+					&& win.second._places[config_name]._dpi_aware == DPI_AWARENESS_PER_MONITOR_AWARE)
+				{
+					logp(sys::e_debug, "Sending DPI changing message.");
+					LPARAM lp = (LPARAM)&win.second._places[config_name]._place.rcNormalPosition;
+					SendMessage(win.second._hwnd, WM_DPICHANGED,
+						MAKEWPARAM(win.second._places[config_name]._place.rcNormalPosition.top, win.second._places[config_name]._place.rcNormalPosition.bottom),
+						lp);
+				}
 			}
 		}
 		_changing_resolution = false;
@@ -218,6 +278,14 @@ namespace mcm {
 	bool poshandler::get_window_placement (HWND hwnd, WINDOWPLACEMENT & place)
 	{
 		place.length = sizeof(place);
+		RECT r;
+		bool getr = GetWindowRect(hwnd, &r);
+		bool ret = GetWindowPlacement(hwnd, &place);
+		RECT& p = place.rcNormalPosition;
+
+		logp(sys::e_debug, "[1] Window rect:      top " << r.top << " left " << r.left << " right " << r.right << " bottom " << r.bottom);
+		logp(sys::e_debug, "[1] Window placement: top " << p.top << " left " << p.left << " right " << p.right << " bottom " << p.bottom);
+#if 1
 		DPI_AWARENESS_CONTEXT previousDpiContext = GetThreadDpiAwarenessContext();
 		DPI_AWARENESS_CONTEXT dpi_context = GetWindowDpiAwarenessContext(hwnd);
 		DPI_AWARENESS dpiAwareness = GetAwarenessFromDpiAwarenessContext(dpi_context);
@@ -225,7 +293,7 @@ namespace mcm {
 			// Scale the window to the system DPI
 		case DPI_AWARENESS_SYSTEM_AWARE:
 			logp(sys::e_debug, "DPI System aware");
-			SetThreadDpiAwarenessContext(dpi_context);
+			//SetThreadDpiAwarenessContext(dpi_context);
 			break;
 			// Scale the window to the monitor DPI
 		case DPI_AWARENESS_PER_MONITOR_AWARE:
@@ -235,14 +303,22 @@ namespace mcm {
 			break;
 		case DPI_AWARENESS_UNAWARE:
 			logp(sys::e_debug, "DPI Unaware");
-			SetThreadDpiAwarenessContext(dpi_context);
+			//SetThreadDpiAwarenessContext(dpi_context);
 			break;
 		default:
 			logp(sys::e_debug, "DPI Unknown");
 			break;
 		}
-		bool ret = GetWindowPlacement(hwnd, &place);
-		SetThreadDpiAwarenessContext(previousDpiContext);
+		//getr = GetWindowRect(hwnd, &r);
+		//ret = GetWindowPlacement(hwnd, &place);
+#endif
+		if (GetDpiForWindow(hwnd) != 96)
+			p = r;
+		//p = place.rcNormalPosition;
+		logp(sys::e_debug, "[2] Window rect:      top " << r.top << " left " << r.left << " right " << r.right << " bottom " << r.bottom);
+		logp(sys::e_debug, "[2] Window placement: top " << p.top << " left " << p.left << " right " << p.right << " bottom " << p.bottom);
+		
+		//SetThreadDpiAwarenessContext(previousDpiContext);
 		return ret;
 	}
 

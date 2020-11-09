@@ -312,7 +312,7 @@ namespace mcm {
 					_repo.get_windows();
 					_last_screen = d;
 					_screen_size = d;
-				} else if (_changing_resolution) {
+				} else if (_changing_resolution && d != _last_screen) {
 					logp(sys::e_debug, "[1] Changing resolution.");
 					_repo.reposition();
 					_last_screen = d;

@@ -82,6 +82,7 @@ public:
 	public:
 		WINDOWPLACEMENT _place;
 		HMONITOR _hmon;
+		DPI_AWARENESS _dpi_aware;
 		int _dpi;
 	};
 	typedef std::map<std::string, win_t::place_t> places_t;
@@ -92,6 +93,7 @@ public:
 	std::string _class_name;
 	int _last_dpi{ 0 };
 	bool _erase{ false };
+	bool _send_dpi{ true };
 	
 	win_t ()
 	{}
