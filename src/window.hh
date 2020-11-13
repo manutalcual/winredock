@@ -163,11 +163,10 @@ namespace mcm {
 			return *this;
 		}
 
-		template<UINT Flags,
-				 UINT AppIcon,
-				 UINT Message,
-				 const char * IconText>
-		window & add_taskbar_icon ()
+		window & add_taskbar_icon (UINT Flags,
+			UINT AppIcon,
+			UINT Message,
+			const char * IconText)
 		{
 			nlogf ();
 			nlogp (ss::e_debug, "Adding taskbar icon");
@@ -327,6 +326,7 @@ namespace mcm {
 					_changing_resolution = false;
 					_repo.changing_resolution(_changing_resolution);
 				} else if (d == _last_screen) {
+					logp(sys::e_debug, "[3] No resolution change.");
 					_repo.get_windows ();
 					_last_screen = d;
 				}
@@ -346,7 +346,7 @@ namespace mcm {
 					break;
 				case DBT_DEVNODES_CHANGED: {
 					logp (sys::e_debug, "Changing resolution...");
-					_changing_resolution = true;
+					//_changing_resolution = true;
 					PDEV_BROADCAST_DEVICEINTERFACE b = (PDEV_BROADCAST_DEVICEINTERFACE) lParam;
 					if (b) {
 						logp (sys::e_debug, "Device param size: " << b->dbcc_size << ", "

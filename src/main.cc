@@ -125,10 +125,10 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 
 	logp (sys::e_debug, "Registering for taskbar creation message.");
 	app.register_for_taskbar_message ();
-	app.add_taskbar_icon<NIF_ICON | NIF_MESSAGE | NIF_TIP,
-						 ID_TRAY_APP_ICON,
-						 WM_TRAYICON,
-						 c_taskbar_icon_text> ();
+	app.add_taskbar_icon (NIF_ICON | NIF_MESSAGE | NIF_TIP,
+		ID_TRAY_APP_ICON,
+		WM_TRAYICON,
+		c_taskbar_icon_text);
 
 	logp (sys::e_debug, "En creations, begin the main loop.");
 

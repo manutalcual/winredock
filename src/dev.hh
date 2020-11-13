@@ -106,6 +106,8 @@ public:
 		_monitors = d._monitors;
 		_width = d._width;
 		_height = d._height;
+		_top = d._top;
+		_left = d._left;
 		_right = d._right;
 		_bottom = d._bottom;
 	}
@@ -183,13 +185,13 @@ public:
 			_bottom = mi.rcMonitor.bottom;
 	}
 //private:
-	int _monitors;
-	int _top;
-	int _left;
-	int _width;
-	int _height;
-	int _right;
-	int _bottom;
+	LONG _monitors;
+	LONG _top;
+	LONG _left;
+	LONG _width;
+	LONG _height;
+	LONG _right;
+	LONG _bottom;
 
 };
 
