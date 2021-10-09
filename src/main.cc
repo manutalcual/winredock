@@ -132,7 +132,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 	app[WM_NCHITTEST] =
 		[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 			logf ();
-			UINT uHitTest = DefWindowProc(hwnd, WM_NCHITTEST, wParam, lParam);
+			LRESULT uHitTest = DefWindowProc(hwnd, WM_NCHITTEST, wParam, lParam);
 			if(uHitTest == HTCLIENT)
 				return HTCAPTION;
 			else

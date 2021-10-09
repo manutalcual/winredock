@@ -42,7 +42,7 @@ namespace mcm {
 	extern GUID power;
 
 	using Func = std::function<DWORD(HWND, UINT, WPARAM, LPARAM)>;
-	using FuncProc = LRESULT CALLBACK (*)(HWND, UINT, WPARAM, LPARAM);
+	using FuncProc = LRESULT  (*)(HWND, UINT, WPARAM, LPARAM);
 	extern Func noop; // = [](HWND, UINT, WPARAM, LPARAM) -> DWORD
 
 	const char * get_msg (UINT msg);
@@ -182,7 +182,7 @@ namespace mcm {
 		void register_all_guids ()
 		{
 			logf ();
-			CONFIGRET ret;
+			CONFIGRET ret{ 0 };
 
 			logp (sys::e_debug, "Eumerate GUIDs.");
 			for (size_t i = 0; ret != CR_NO_SUCH_VALUE; ++i) {
