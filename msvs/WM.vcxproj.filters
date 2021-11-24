@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\src\common.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\deserializer.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\dev.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\main.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\poshandler.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\serializer.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\window.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\virt_desktop.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\common.hh">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\deserializer.hh">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\dev.hh">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\list.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\main.hh">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\poshandler.hh">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\resource.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\serializer.hh">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\window.hh">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\virt_desktop.hh">
+      <Filter>Headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{ab3cd9d1-e982-492e-9dae-c7dc4a02cff6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources">
+      <UniqueIdentifier>{3307ca4e-28da-4d03-99e4-40c5259379b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{9851fe39-8ec0-48ca-aef9-aea3ecdb2e7b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\src\icon.ico">
+      <Filter>Resources</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\src\wm.rc">
+      <Filter>Resources</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

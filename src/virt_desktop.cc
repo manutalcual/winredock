@@ -36,7 +36,33 @@ namespace strings
 
 namespace win {
 
+	const CLSID CLSID_ImmersiveShell = { 0xC2F03A33, 0x21F5, 0x47FA, 0xB4, 0xBB, 0x15, 0x63, 0x62, 0xA2, 0xF2, 0x39 };
+
+	IServiceProvider* GetServiceProvider()
+	{
+		IServiceProvider* provider{ nullptr };
+		if (FAILED(CoCreateInstance(CLSID_ImmersiveShell, nullptr, CLSCTX_LOCAL_SERVER, __uuidof(provider), (PVOID*)&provider)))
+		{
+			logp(sys::e_error, "Failed to get ServiceProvider for VirtualDesktopManager");
+			return nullptr;
+		}
+		return provider;
+	}
+
+	IVirtualDesktopManager* GetVirtualDesktopManager()
+	{
+		IVirtualDesktopManager* manager{ nullptr };
+		IServiceProvider* serviceProvider = GetServiceProvider();
+		if (serviceProvider == nullptr || FAILED(serviceProvider->QueryService(__uuidof(manager), &manager)))
+		{
+			logp(sys::e_error, "Failed to get VirtualDesktopManager");
+			return nullptr;
+		}
+		return manager;
+	}
+
 	virt_desktop_t::virt_desktop_t ()
+		: _manager{ GetVirtualDesktopManager() }
 	{
 	}
 
@@ -44,7 +70,7 @@ namespace win {
 	{
 	}
 
-	std::optional<GUID> virt_desktop_t::get_current_desktop_id()
+	virt_desktop_t::opt_guid virt_desktop_t::get_current_desktop_id()
 	{
 		HKEY key{};
 		LSTATUS ok{ 0 };
@@ -57,16 +83,14 @@ namespace win {
 				logp(sys::e_trace, "Got current desktop: '" << win::guid_to_string(&value) << "'");
 				return value;
 			}
-			win::error err{ ok, "Can't open registry value." };
 			logp(sys::e_trace, "Can't get registry value.");
 		}
 		logp(sys::e_trace, "Can't get registry key.");
-		win::error err{ ok, "Can't open registry key." };
 		return std::nullopt;
 
 	}
 
-	std::optional<GUID> virt_desktop_t::GetDesktopIdFromCurrentSession()
+	virt_desktop_t::opt_guid virt_desktop_t::get_desktop_id_from_current_session()
 	{
 		DWORD sessionId;
 		if (!ProcessIdToSessionId(GetCurrentProcessId(), &sessionId))
@@ -91,9 +115,66 @@ namespace win {
 			if (RegQueryValueExW(key, strings::RegCurrentVirtualDesktop, 0, nullptr,
 				reinterpret_cast<BYTE*>(&value), &size) == ERROR_SUCCESS)
 			{
+				logp(sys::e_trace, "Got current desktop: '" << win::guid_to_string(&value) << "'");
 				return value;
 			}
+			logp(sys::e_trace, "Can't get registry value.");
 		}
+		logp(sys::e_trace, "Can't get registry key.");
+
+		return std::nullopt;
+	}
+
+	virt_desktop_t::opt_guid_vect virt_desktop_t::get_virtual_desktop_ids_from_registry(HKEY hKey) const
+	{
+		if (!hKey)
+		{
+			return std::nullopt;
+		}
+
+		DWORD bufferCapacity;
+		// request regkey binary buffer capacity only
+		if (RegQueryValueExW(hKey, strings::RegVirtualDesktopIds, 0, nullptr, nullptr, &bufferCapacity) != ERROR_SUCCESS)
+		{
+			return std::nullopt;
+		}
+
+		std::unique_ptr<BYTE[]> buffer = std::make_unique<BYTE[]>(bufferCapacity);
+		// request regkey binary content
+		if (RegQueryValueExW(hKey, strings::RegVirtualDesktopIds, 0, nullptr, buffer.get(), &bufferCapacity) != ERROR_SUCCESS)
+		{
+			return std::nullopt;
+		}
+
+		const size_t guidSize = sizeof(GUID);
+		std::vector<GUID> temp;
+		temp.reserve(bufferCapacity / guidSize);
+		for (size_t i = 0; i < bufferCapacity; i += guidSize)
+		{
+			GUID* guid = reinterpret_cast<GUID*>(buffer.get() + i);
+			temp.push_back(*guid);
+		}
+
+		return temp;
+	}
+
+	virt_desktop_t::opt_guid virt_desktop_t::get_desktop_id_for_window(HWND window) const
+	{
+		GUID id;
+		BOOL isWindowOnCurrentDesktop = false;
+		if (_manager->IsWindowOnCurrentVirtualDesktop(window, &isWindowOnCurrentDesktop) == S_OK && isWindowOnCurrentDesktop)
+		{
+			LRESULT ok{ 0 };
+			// Filter windows such as Windows Start Menu, Task Switcher, etc.
+			if ((ok = _manager->GetWindowDesktopId(window, &id)) == S_OK && id != GUID_NULL)
+			{
+				return id;
+			}
+			error err{ok, "Getting window destop id"};
+			logp(sys::e_trace, "Can't get window desktop id.");
+		}
+		logp(sys::e_trace, "Can't know if window is in current desktop. ("
+			<< isWindowOnCurrentDesktop << ")");
 
 		return std::nullopt;
 	}

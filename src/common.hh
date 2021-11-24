@@ -262,6 +262,8 @@ namespace win {
 		LPVOID _lpMsgBuf;
 	};
 
+
+
 	bool if_nok(auto res)
 	{
 		decltype(auto) r = res;

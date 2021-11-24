@@ -168,4 +168,5 @@ namespace win {
 		return guid_string;
 	}
 
+
 } // end namespace win

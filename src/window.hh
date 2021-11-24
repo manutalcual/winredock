@@ -237,6 +237,7 @@ namespace win {
 												  &power,
 												  DEVICE_NOTIFY_WINDOW_HANDLE);
 
+				logp(sys::e_trace, "Window HWND " << hwnd);
 				if (! _funcmap[message] (hwnd, message, wParam, lParam)) {
 					logp (sys::e_debug, "Error handling message: " << message << ".");
 				}
@@ -252,10 +253,13 @@ namespace win {
 				logp (sys::e_debug, "WM_COMMAND message received.");
 				break;
 			case WM_TRAYICON:	//
-				nlogp (sys::e_debug, "WM_TRAYICON message received.");
+				logp (sys::e_debug, "WM_TRAYICON message received.");
 				if (lParam == WM_LBUTTONUP) {
+					logp(sys::e_debug, "WM_TRAYICON WM_LBUTTONUP message received.");
 					_icon_click (hwnd, message, wParam, lParam); //
 				} else if (lParam == WM_RBUTTONDOWN) {
+					logp(sys::e_debug, "WM_TRAYICON WM_RBUTTONDOWN message received. "
+						<< message << ".");
 					_funcmap[_funcmap[message](hwnd, message, wParam, lParam)]
 						(hwnd, message, wParam, lParam);
 				}

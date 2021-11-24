@@ -21,21 +21,58 @@
 //
 // Includes
 //
+#include <vector>
 #include <optional>
+
 #include "common.hh"
+
+namespace strings
+{
+	extern const wchar_t RegCurrentVirtualDesktop[];
+	extern const wchar_t RegVirtualDesktopIds[];
+	extern const wchar_t RegKeyVirtualDesktops[];
+	extern const wchar_t RegKeyVirtualDesktopsFromSession[];
+}
 
 namespace win {
 
 	class virt_desktop_t
 	{
 	public:
+		using opt_guid_vect = std::optional<std::vector<GUID>>;
+		using opt_guid = std::optional<GUID>;
+
+		static HKEY open_virtual_desktops_reg_key()
+		{
+			HKEY hKey{ nullptr };
+			if (RegOpenKeyExW(HKEY_CURRENT_USER, strings::RegKeyVirtualDesktops, 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS)
+			{
+				return hKey;
+			}
+			return nullptr;
+		}
+		static HKEY get_virtual_desktops_reg_key()
+		{
+			static HKEY virtualDesktopsKey{ open_virtual_desktops_reg_key() };
+			return virtualDesktopsKey;
+		}
+
+
 		virt_desktop_t ();
 		~virt_desktop_t ();
 
-		std::optional<GUID> get_current_desktop_id();
-		std::optional<GUID> GetDesktopIdFromCurrentSession();
+		opt_guid get_current_desktop_id();
+		opt_guid get_desktop_id_from_current_session();
+		opt_guid_vect get_virtual_desktop_ids_from_registry(HKEY hKey) const;
+
+		opt_guid get_desktop_id_for_window(HWND window) const;
+
+
+
+
 	protected:
 	private:
+		IVirtualDesktopManager* _manager{ nullptr };
 	};
 
 } // end namespace win
