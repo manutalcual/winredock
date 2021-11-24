@@ -25,114 +25,137 @@
 //
 #include "common.hh"
 
-namespace mcm {
-	namespace sys {
+namespace sys {
 
-		std::string log_tabs::tabs = "";
+#ifdef _DEBUG
+	int common::LOG_LEVEL = sys::e_trace;
+#else
+	int common::LOG_LEVEL = sys::e_info;
+#endif // WITH_LOG
 
-		std::ostream & operator << (std::ostream & o, log_tabs & l)
-		{
-			o << log_tabs::tabs;
-			return o;
-		}
+	int g_log_active{ 1 };
+	std::ofstream common::cerr;
+
+	const char* common::log_names[] = {
+		"EMERG", "ALERT", "CRITICAL", "NOTICE", "ERROR",
+		"WARNING", "INFO", "DEBUG", "TRACE" };
+
+
+	std::string log_tabs::tabs = "";
+
+	std::ostream& operator << (std::ostream& o, log_tabs& l)
+	{
+		o << log_tabs::tabs;
+		return o;
+	}
 
 
 #ifdef WITH_LOG
-		std::ofstream log ("wm.log");
+	std::ofstream log("wm.log");
 #endif
 
-		int atoi (std::string & str)
-		{
-			int num = ::strtol(str.c_str(), NULL, 10);
-			return num;
+	int atoi(std::string& str)
+	{
+		int num = ::strtol(str.c_str(), NULL, 10);
+		return num;
+	}
+
+	std::string itoa(int i)
+	{
+		char buf[124];
+		::sprintf(buf, "%d", i);
+		return buf;
+	}
+
+	stat_t::stat_t(std::string file_name)
+		: _good(::stat(file_name.c_str(), &_st) == 0)
+	{
+	}
+
+	size_t stat_t::size()
+	{
+		return _st.st_size;
+	}
+
+	std::string get_printable_time()
+	{
+		char str[124];
+		std::time_t t = std::time(nullptr);
+		std::strftime(str, 123, "%F %T", std::localtime(&t) /*std::gmtime(&t)*/);
+		return str;
+	}
+
+	file_t::file_t(std::string file_name)
+		: _good(false),
+		_file(::fopen(file_name.c_str(), "r")),
+		_buf(nullptr)
+	{
+		nlogf();
+
+		if (_file == nullptr) {
+			logp(sys::e_debug, "Ca't open file.");
+			return;
 		}
 
-		std::string itoa (int i)
-		{
-			char buf[124];
-			::sprintf (buf, "%d", i);
-			return buf;
+		stat_t st(file_name);
+		if (!st) {
+			logp(sys::e_debug, "Can't stat file.");
+			return;
 		}
 
-		stat_t::stat_t (std::string file_name)
-			: _good (::stat(file_name.c_str(), &_st) == 0)
-		{
+		_buf = new char[st.size() + 1];
+		size_t readed = ::fread(_buf, 1, st.size(), _file);
+		if (readed != st.size()) {
+			logp(sys::e_debug, "Can't read the whole file.");
+			return;
 		}
+		_buf[st.size()] = '\0';
+		_size = st.size();
+		nlogp(sys::e_debug, "Data readed: "
+			<< _size << ".");
+		nlogp(sys::e_debug, "First char: '"
+			<< _buf[0] << "'."); //
+		_good = true;
+	}
 
-		size_t stat_t::size ()
-		{
-			return _st.st_size;
-		}
+	char& file_t::operator [] (int i)
+	{
+		return _buf[i];
+	}
 
-		file_t::file_t (std::string file_name)
-			: _good (false),
-			  _file (::fopen(file_name.c_str(), "r")),
-			  _buf (nullptr)
-		{
-			nlogf ();
-
-			if (_file == nullptr) {
-				logp (sys::e_debug, "Ca't open file.");
-				return;
-			}
-
-			stat_t st (file_name);
-			if (! st) {
-				logp (sys::e_debug, "Can't stat file.");
-				return;
-			}
-
-			_buf = new char [st.size() + 1];
-			size_t readed = ::fread (_buf, 1, st.size(), _file);
-			if (readed != st.size()) {
-				logp (sys::e_debug, "Can't read the whole file.");
-				return;
-			}
-			_buf[st.size()] = '\0';
-			_size = st.size();
-			nlogp (sys::e_debug, "Data readed: "
-				  << _size << ".");
-			nlogp (sys::e_debug, "First char: '"
-				  << _buf[0] << "'."); //
-			_good = true;
-		}
-
-		char & file_t::operator [] (int i)
-		{
-			return _buf[i];
-		}
-
-		bool set_cwd::operator () (set_cwd::cwd type)
-		{
-			DWORD flag;
-			switch (type) {
-			case home:
-				flag = CSIDL_PROFILE;
-				break;
-			case data:
-				flag = CSIDL_APPDATA;
-				break;
-			default:
-				return false;
-				break;
-			}
-
-			HRESULT result = SHGetFolderPathA(NULL, flag, NULL, 0, _path);
-			if (SUCCEEDED(result)) {
-				/*
-				MessageBoxExW ((HWND)0, profilePath, L"Seting working dir",
-							   MB_OK,
-							   MAKELANGID(LANG_NEUTRAL,
-							   SUBLANG_NEUTRAL));
-				*/
-				return SetCurrentDirectoryA(_path);
-			}
+	bool set_cwd::operator () (set_cwd::cwd type)
+	{
+		DWORD flag;
+		switch (type) {
+		case home:
+			flag = CSIDL_PROFILE;
+			break;
+		case data:
+			flag = CSIDL_APPDATA;
+			break;
+		default:
 			return false;
+			break;
 		}
 
-	} // namespace sys
+		HRESULT result = SHGetFolderPathA(NULL, flag, NULL, 0, _path);
+		if (SUCCEEDED(result)) {
+			/*
+			MessageBoxExW ((HWND)0, profilePath, L"Seting working dir",
+						   MB_OK,
+						   MAKELANGID(LANG_NEUTRAL,
+						   SUBLANG_NEUTRAL));
+			*/
+			return SetCurrentDirectoryA(_path);
+		}
+		return false;
+	}
 
-	std::string guid_to_string (GUID * guid)
+} // namespace sys
+
+namespace win {
+
+	std::string guid_to_string(GUID* guid)
 	{
 		char guid_string[37]; // 32 hex chars + 4 hyphens + null terminator
 		snprintf(
@@ -145,5 +168,4 @@ namespace mcm {
 		return guid_string;
 	}
 
-
-} // namespace mcm
+} // end namespace win

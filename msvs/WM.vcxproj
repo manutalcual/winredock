@@ -19,6 +19,7 @@
     <ClInclude Include="..\src\poshandler.hh" />
     <ClInclude Include="..\src\resource.h" />
     <ClInclude Include="..\src\serializer.hh" />
+    <ClInclude Include="..\src\virt_desktop.hh" />
     <ClInclude Include="..\src\window.hh" />
   </ItemGroup>
   <ItemGroup>
@@ -34,6 +35,7 @@
     <ClCompile Include="..\src\main.cc" />
     <ClCompile Include="..\src\poshandler.cc" />
     <ClCompile Include="..\src\serializer.cc" />
+    <ClCompile Include="..\src\virt_desktop.cc" />
     <ClCompile Include="..\src\window.cc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

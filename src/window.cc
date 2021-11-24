@@ -22,7 +22,7 @@
 //
 #include "window.hh"
 
-namespace mcm {
+namespace win {
 
 	GUID power = { 0x2B84C20E, 0xAD23, 0x4ddf, { 0x93, 0xDB, 0x05, 0xFF, 0xBD, 0x7E, 0xFC, 0xA5 } };
 
@@ -352,4 +352,4 @@ namespace mcm {
 	}
 
 
-} // namespace mcm
+} // namespace win

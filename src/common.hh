@@ -56,12 +56,16 @@
 
 
 #ifdef WITH_LOG
-#define logp(p, str) mcm::sys::log << "[" << __FILE__	\
-	<< ":" << __LINE__ << "] " << mcm::sys::log_tabs::tabs << str << std::endl
-#define logf() mcm::sys::log_tabs t___; \
-	mcm::sys::log << "[" << __FILE__ \
-	<< ":" << __LINE__ << "] " \
-	<< __PRETTY_FUNCTION__ << std::endl
+#define logp(p, str) do { if (p <= sys::common::LOG_LEVEL) { \
+		sys::log \
+		<< sys::get_printable_time()   \
+		<< "[" << __FILE__	\
+		<< ":" << __LINE__ << "] " \
+		<< sys::common::log_names[p]                    \
+		<< ": "                                         \
+		<< sys::log_tabs::tabs << str << std::endl; \
+	} } while (0)
+#define logf() logp(sys::e_trace, __PRETTY_FUNCTION__)
 #define nlogp(p, str)
 #define nlogf()
 #else
@@ -71,7 +75,7 @@
 #define nlogf()
 #endif
 
-const std::string FILE_NAME ("window_list.json");
+const std::string FILE_NAME("window_list.json");
 
 class win_t
 {
@@ -93,110 +97,128 @@ public:
 	bool _erase;
 	bool _off_screen;
 
-	win_t ()
+	win_t()
 		: _hwnd{},
-		  _deserialized{},
-		  _erase{},
-		  _off_screen{}
+		_deserialized{},
+		_erase{},
+		_off_screen{}
 	{}
-	~win_t ()
+	~win_t()
 	{
 		ReleaseDC(_hwnd, _hdc);
 	}
 };
 typedef std::map<HWND, win_t> mapwin_t;
 
-namespace mcm {
-	namespace sys {
+namespace sys {
+	enum e_log_level {
+		e_failure,
+		e_alert,
+		e_critical,
+		e_notice,
+		e_error,
+		e_warning,
+		e_info,
+		e_debug,
+		e_trace
+	};
 
-#ifdef WITH_LOG
-		extern std::ofstream log;
-#endif
-
-		class log_tabs
-		{
-		public:
-			static std::string tabs;
-			log_tabs ()
-			{
-				tabs += "  ";
-			}
-			~log_tabs ()
-			{
-				if (tabs.size())
-					tabs = tabs.substr(0, tabs.size() - 2);
-			}
-		};
-
-		std::ostream & operator << (std::ostream & o, log_tabs & l);
-
-		template<typename Type>
-		Type amin (Type a, Type b)
-		{
-			return a < b ? a : b;
-		}
-
-		enum e_prio {
-			e_debug,
-			e_warning,
-			e_error,
-			e_critical,
-			e_failure
-		};
-
-		int atoi (std::string & str);
-		std::string itoa (int str);
-
-		class stat_t
-		{
-		public:
-			stat_t (std::string file_name);
-			operator bool () { return _good; }
-			size_t size ();
-		private:
-			bool _good;
-			struct stat _st;
-		};
-		class file_t
-		{
-		public:
-			file_t (std::string file_name);
-			~file_t () { if (_file) ::fclose(_file); }
-			operator bool () { return _good; }
-			size_t size () { return _size; }
-			char & operator [] (int i);
-		private:
-			bool _good;
-			FILE * _file;
-			size_t _size;
-			char * _buf;
-		};
-
-		class set_cwd
-		{
-		public:
-			enum cwd
-			{
-				home,
-				data
-			};
-			bool operator () (cwd type);
-			std::string path () { return _path; }
-		private:
-			char _path[MAX_PATH];
-			/*
-			  CHAR path[MAX_PATH];
-			  GetCurrentDirectory (MAX_PATH, path);
-			*/
-		};
-
-	} // namespace sys
-
-	class win_error
+	class common
 	{
 	public:
-		win_error (const char * msg)
-			: _msg (msg)
+		static std::ofstream cerr;
+		static int LOG_LEVEL; /**< log level used for log macros */
+		static const char* log_names[]; /** log priority names */
+	};
+
+
+#ifdef WITH_LOG
+	extern std::ofstream log;
+#endif
+
+	class log_tabs
+	{
+	public:
+		static std::string tabs;
+		log_tabs()
+		{
+			tabs += "  ";
+		}
+		~log_tabs()
+		{
+			if (tabs.size())
+				tabs = tabs.substr(0, tabs.size() - 2);
+		}
+	};
+
+	std::ostream& operator << (std::ostream& o, log_tabs& l);
+
+	template<typename Type>
+	Type amin(Type a, Type b)
+	{
+		return a < b ? a : b;
+	}
+
+	int atoi(std::string& str);
+	std::string itoa(int str);
+	std::string get_printable_time();
+
+	class stat_t
+	{
+	public:
+		stat_t(std::string file_name);
+		operator bool() { return _good; }
+		size_t size();
+	private:
+		bool _good;
+		struct stat _st;
+	};
+
+	class file_t
+	{
+	public:
+		file_t(std::string file_name);
+		~file_t() { if (_file) ::fclose(_file); }
+		operator bool() { return _good; }
+		size_t size() { return _size; }
+		char& operator [] (int i);
+	private:
+		bool _good;
+		FILE* _file;
+		size_t _size;
+		char* _buf;
+	};
+
+	class set_cwd
+	{
+	public:
+		enum cwd
+		{
+			home,
+			data
+		};
+		bool operator () (cwd type);
+		std::string path() { return _path; }
+	private:
+		char _path[MAX_PATH];
+		/*
+		  CHAR path[MAX_PATH];
+		  GetCurrentDirectory (MAX_PATH, path);
+		*/
+	};
+
+} // namespace sys
+
+
+namespace win {
+
+	std::string guid_to_string(GUID* guid);
+
+	class error
+	{
+	public:
+		error(const char* msg)
+			: _msg(msg)
 		{
 			_error = GetLastError();
 			FormatMessage(
@@ -206,26 +228,50 @@ namespace mcm {
 				NULL,
 				_error,
 				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-				(LPTSTR) &_lpMsgBuf,
-				0, NULL );
-			logp (sys::e_debug, "Error: " << (char *)_lpMsgBuf);
+				(LPTSTR)&_lpMsgBuf,
+				0, NULL);
+			logp(sys::e_debug, "Error: " << (char*)_lpMsgBuf);
 		}
-		win_error & operator () ()
+		error(LRESULT error, const char* msg)
+			: _msg{ msg },
+			_error{ static_cast<DWORD>(error) }
 		{
-			logp (sys::e_debug, _msg);
-			std::string msg{_msg};
-			msg += (char *)_lpMsgBuf;
-			FatalAppExit (0, TEXT(msg.c_str()));
+			//_error = GetLastError();
+			FormatMessage(
+				FORMAT_MESSAGE_ALLOCATE_BUFFER |
+				FORMAT_MESSAGE_FROM_SYSTEM |
+				FORMAT_MESSAGE_IGNORE_INSERTS,
+				NULL,
+				_error,
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				(LPTSTR)&_lpMsgBuf,
+				0, NULL);
+			logp(sys::e_debug, "Error: " << (char*)_lpMsgBuf);
+		}
+		error& operator () ()
+		{
+			logp(sys::e_debug, _msg);
+			std::string msg{ _msg };
+			msg += (char*)_lpMsgBuf;
+			FatalAppExit(0, TEXT(msg.c_str()));
 			return *this; // this will never be reached!
 		}
 	private:
-		const char * _msg;
+		const char* _msg;
 		DWORD _error;
 		LPVOID _lpMsgBuf;
 	};
 
-	std::string guid_to_string (GUID * guid);
+	bool if_nok(auto res)
+	{
+		decltype(auto) r = res;
+		if (res != 0) {
+			error err{ r, "Error executing Windows function" };
+			return false;
+		}
+		return true;
+	}
 
-} // namespace mcm
+} // end namespace win
 
 #endif // common_h

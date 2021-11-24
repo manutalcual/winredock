@@ -37,7 +37,7 @@
 #include "dev.hh"
 #include "poshandler.hh"
 
-namespace mcm {
+namespace win {
 
 	extern GUID power;
 
@@ -166,7 +166,7 @@ namespace mcm {
 		window & add_taskbar_icon ()
 		{
 			logf ();
-			logp (ss::e_debug, "Adding taskbar icon");
+			logp (sys::e_debug, "Adding taskbar icon");
 			_notify_icon_data.cbSize = sizeof(NOTIFYICONDATA);
 			_notify_icon_data.hWnd = _hwnd;
 			_notify_icon_data.uID = AppIcon; //ID_TRAY_APP_ICON;
@@ -191,7 +191,7 @@ namespace mcm {
 										   &guid,
 										   0);
 				if (ret != CR_NO_SUCH_VALUE) {
-					nlogp (sys::e_debug, "Registering for GUID: " << mcm::guid_to_string(&guid));
+					nlogp (sys::e_debug, "Registering for GUID: " << win::guid_to_string(&guid));
 					register_notification (&guid);
 				}
 			}
@@ -206,8 +206,8 @@ namespace mcm {
 
 		LRESULT handle (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
-			logf ();
-			logp (sys::e_debug, "Message received: "
+			nlogf ();
+			nlogp (sys::e_debug, "Message received: "
 				  << message
 				  << "='" << get_msg(message) << "', "
 				  << wParam << ", " << lParam << "'.");
@@ -268,7 +268,7 @@ namespace mcm {
 				logp (sys::e_debug, "WM_CLOSE message received.");
 				if (_hdev_notify) {
 					if (! UnregisterDeviceNotification(_hdev_notify)) {
-						logp (sys::e_deug, "UnregisterDeviceNotification failed");
+						logp (sys::e_debug, "UnregisterDeviceNotification failed");
 					}
 				}
 				return 0;
@@ -287,11 +287,11 @@ namespace mcm {
 			case WM_DISPLAYCHANGE: {
 				logp (sys::e_debug, "WM_DISPLAYCHANGE message received.");
 				dev d;
-				std::string config_name = mcm::sys::itoa(d.width());
+				std::string config_name = sys::itoa(d.width());
 				config_name += "_";
-				config_name += mcm::sys::itoa(d.height());
+				config_name += sys::itoa(d.height());
 				config_name += "_";
-				config_name += mcm::sys::itoa(d.monitors());
+				config_name += sys::itoa(d.monitors());
 				logp (sys::e_debug, "Current configuration: " << config_name);
 			}
 				break;
@@ -300,7 +300,7 @@ namespace mcm {
 				logp (sys::e_debug, "Actual screen: ");
 				dev d;
 				d.print ();
-				logp (sys:::e_debug, "Last screen: ");
+				logp (sys::e_debug, "Last screen: ");
 				_last_screen.print ();
 				if (d != _last_screen) {
 					logp (sys::e_debug, "Changing resolution.");
@@ -381,11 +381,11 @@ namespace mcm {
 					} else {
 						logp (sys::e_debug, "There is no device identity param!");
 						dev d;
-						std::string config_name = mcm::sys::itoa(d.width());
+						std::string config_name = sys::itoa(d.width());
 						config_name += "_";
-						config_name += mcm::sys::itoa(d.height());
+						config_name += sys::itoa(d.height());
 						config_name += "_";
-						config_name += mcm::sys::itoa(d.monitors());
+						config_name += sys::itoa(d.monitors());
 						logp (sys::e_debug, "Current configuration: " << config_name);
 					}
 				}
@@ -482,7 +482,7 @@ namespace mcm {
 			return msg.wParam;
 		}
 	private:
-		typedef std::map<std::string, mcm::poshandler> maprepohandlers_t;
+		typedef std::map<std::string, win::poshandler> maprepohandlers_t;
 		WNDCLASSEX _class;
 		HINSTANCE _instance;
 		HINSTANCE _previous;
@@ -527,7 +527,7 @@ namespace mcm {
 			if (NULL == _hdev_notify)
 			{
 				logp (sys::e_debug, "Register notification failed for GUID: "
-					  << mcm::guid_to_string(guid));
+					  << guid_to_string(guid));
 				return FALSE;
 			}
 			return true;
@@ -535,6 +535,6 @@ namespace mcm {
 
 	};
 
-} // namespace mcm
+} // namespace win
 
 #endif // window_h

@@ -20,8 +20,8 @@
 //   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 //   02110-1301	USA
 //
-#ifndef dev_hh
-#define dev_hh
+#pragma once
+
 #include "common.hh"
 
 bool get_enum_monitors (HMONITOR mon, HDC hdc, LPRECT rect, LPARAM data);
@@ -193,5 +193,3 @@ public:
 
 };
 
-
-#endif // dev_hh

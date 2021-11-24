@@ -25,7 +25,7 @@
 //
 #include "deserializer.hh"
 
-namespace mcm {
+namespace sys {
 
 	deserializer_t::deserializer_t (std::string file_name, mapwin_t & windows)
 		: _good {false},
@@ -239,9 +239,9 @@ namespace mcm {
 			if (name == c_title)
 				_win[_count]._title = value;
 			if (name == c_flags)
-				_win[_count]._place.flags = mcm::sys::atoi(value);
+				_win[_count]._place.flags = sys::atoi(value);
 			if (name == c_show)
-				_win[_count]._place.showCmd = mcm::sys::atoi(value);
+				_win[_count]._place.showCmd = sys::atoi(value);
 
 		} else if (--_i, match('{')) {
 			nlogp (sys::e_debug, "Get class element: subelement");
@@ -415,4 +415,4 @@ namespace mcm {
 	}
 
 
-} // nammespace mcm
+} // nammespace sys

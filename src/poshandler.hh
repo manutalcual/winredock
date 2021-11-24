@@ -29,7 +29,7 @@
 BOOL is_alt_tab_window (HWND hwnd);
 BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam);
 
-namespace mcm {
+namespace win {
 	class poshandler
 	{
 		class rot_2
@@ -62,5 +62,5 @@ namespace mcm {
 		mapwin_t _windows;
 		dev _screen_size;
 	};
-} // namespace mcm
+} // namespace win
 #endif // posthandler_hh

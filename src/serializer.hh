@@ -25,7 +25,7 @@
 #include "common.hh"
 #include "deserializer.hh"
 
-namespace mcm {
+namespace sys {
 
 	class serializer
 	{
@@ -37,5 +37,5 @@ namespace mcm {
 		mapwin_t & _mapwin;
 	};
 
-} // namespace mcm
+} // namespace sys
 #endif // serializer_h

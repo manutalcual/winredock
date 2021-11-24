@@ -20,16 +20,15 @@
 //   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 //   02110-1301	USA
 //
+#pragma once
 //
 // Includes
 //
-#ifndef deserializer_h
-#define deserializer_h
 #include <vector>
 
 #include "common.hh"
 
-namespace mcm {
+namespace sys {
 	const char c_class[] = "class";
 	const char c_data[] = "data";
 	const char c_title[] = "title";
@@ -55,7 +54,7 @@ namespace mcm {
 		//using vecerrors_t = std:vector<std::string>;
 		typedef std::vector<std::string> vecerrors_t;
 		bool _good;
-		mcm::sys::file_t _in;
+		sys::file_t _in;
 		size_t _i;
 		mapwin_t & _win;
 		vecerrors_t _errors;
@@ -80,6 +79,4 @@ namespace mcm {
 		std::string get_value ();
 	};
 
-} // nammespace m
-
-#endif
+} // nammespace sys

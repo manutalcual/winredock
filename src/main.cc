@@ -25,11 +25,12 @@
 //
 #include "main.hh"
 #include "dev.hh"
+#include "virt_desktop.hh"
 
 const char c_class_name[] = "WinReDock";
 const char c_window_title[] = "WinReDock - restore windows to pre-undock positions";
 const char c_taskbar_icon_text[] = "WinReDock -- tooling; dockerify after undock!";
-mcm::window<c_class_name,
+win::window<c_class_name,
 			WndProc,
 			(CS_HREDRAW | CS_VREDRAW),
 			c_window_title> * g_app = nullptr;
@@ -39,17 +40,17 @@ std::string file_name{"window_list.json"};
 int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, int iCmdShow )
 {
 	logf ();
-	logp (sys::e_debu, "Creating window with class name: " << c_class_name);
+	logp (sys::e_debug, "Creating window with class name: " << c_class_name);
 
-	mcm::sys::set_cwd changedir;
+	sys::set_cwd changedir;
 
-	if (! changedir(mcm::sys::set_cwd::cwd::home)) {
+	if (! changedir(sys::set_cwd::cwd::home)) {
 		FatalAppExit (0, TEXT("Can't change working dir."));
 	}
 
 	file_name  = changedir.path() + "\\" + file_name;
 
-	mcm::window<c_class_name,
+	win::window<c_class_name,
 				WndProc,
 				(CS_HREDRAW | CS_VREDRAW),
 				c_window_title>
@@ -80,6 +81,15 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 								   logp (sys::e_debug, "Call to load windows.");
 								   //positioner.get_windows ();
+								   win::virt_desktop_t virt;
+								   auto cur_desktop = virt.get_current_desktop_id();
+								   if (cur_desktop) {
+									   logp(sys::e_trace, "Current desktop: '" << win::guid_to_string(&cur_desktop.value())
+										   << "'");
+								   }
+								   else {
+									   logp(sys::e_trace, "There is no current desktop.");
+								   }
 								   return app;
 							   })
 				.add_menu_item(MF_STRING,
@@ -161,7 +171,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 		};
 
 	if (! app.create()) {
-		mcm::win_error err ("Can't create window object.");
+		win::error err ("Can't create window object.");
 		err ();
 	}
 
@@ -179,7 +189,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 
 LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	logf ();
+	nlogf ();
 	logp (sys::e_debug, "Message received: "
 		  << message << ", "
 		  << wParam << ", " << lParam << ".");

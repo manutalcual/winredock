@@ -22,7 +22,7 @@
 //
 #include "serializer.hh"
 
-namespace mcm {
+namespace sys {
 
 	serializer::serializer (mapwin_t & map)
 		: _mapwin (map)
@@ -93,4 +93,4 @@ namespace mcm {
 		return true;
 	}
 
-} // namespace mcm
+} // namespace sys
