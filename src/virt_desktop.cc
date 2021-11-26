@@ -41,9 +41,38 @@ namespace win {
 	IServiceProvider* GetServiceProvider()
 	{
 		IServiceProvider* provider{ nullptr };
-		if (FAILED(CoCreateInstance(CLSID_ImmersiveShell, nullptr, CLSCTX_LOCAL_SERVER, __uuidof(provider), (PVOID*)&provider)))
+		HRESULT res = CoCreateInstance(CLSID_ImmersiveShell, nullptr, CLSCTX_LOCAL_SERVER, __uuidof(provider), (PVOID*)&provider);
+		if (FAILED(res))
 		{
+			error err{ res, "Failed to get ServiceProvider for VirtualDesktopManager" };
 			logp(sys::e_error, "Failed to get ServiceProvider for VirtualDesktopManager");
+			//error err{ res, "Getting window destop id" };
+			switch (res)
+			{
+			case REGDB_E_CLASSNOTREG:
+			{
+				logp(sys::e_error, "Failed REGDB_E_CLASSNOTREG");
+				break;
+			}
+			case CLASS_E_NOAGGREGATION:
+			{
+				logp(sys::e_error, "Failed CLASS_E_NOAGGREGATION");
+				break;
+			}
+			case E_NOINTERFACE:
+			{
+				logp(sys::e_error, "Failed E_NOINTERFACE");
+				break;
+			}
+			case E_POINTER:
+			{
+				logp(sys::e_error, "Failed E_POINTER");
+				break;
+			}
+			default:
+				logp(sys::e_error, "Failed unknown");
+				break;
+			}
 			return nullptr;
 		}
 		return provider;
@@ -72,7 +101,7 @@ namespace win {
 
 	virt_desktop_t::opt_guid virt_desktop_t::get_current_desktop_id()
 	{
-		HKEY key{};
+		win::hkey_t key;
 		LSTATUS ok{ 0 };
 		if ((ok = RegOpenKeyExW(HKEY_CURRENT_USER, strings::RegKeyVirtualDesktops, 0, KEY_ALL_ACCESS, &key)) == ERROR_SUCCESS)
 		{
@@ -107,7 +136,7 @@ namespace win {
 			return std::nullopt;
 		}
 
-		HKEY key{};
+		win::hkey_t key;
 		if (RegOpenKeyExW(HKEY_CURRENT_USER, sessionKeyPath, 0, KEY_ALL_ACCESS, &key) == ERROR_SUCCESS)
 		{
 			GUID value{};
@@ -161,8 +190,8 @@ namespace win {
 	virt_desktop_t::opt_guid virt_desktop_t::get_desktop_id_for_window(HWND window) const
 	{
 		GUID id;
-		BOOL isWindowOnCurrentDesktop = false;
-		if (_manager->IsWindowOnCurrentVirtualDesktop(window, &isWindowOnCurrentDesktop) == S_OK && isWindowOnCurrentDesktop)
+		BOOL isWindowOnCurrentDesktop = is_window_in_current_desktop(window);
+		if (_manager)
 		{
 			LRESULT ok{ 0 };
 			// Filter windows such as Windows Start Menu, Task Switcher, etc.
@@ -170,15 +199,47 @@ namespace win {
 			{
 				return id;
 			}
-			error err{ok, "Getting window destop id"};
-			logp(sys::e_trace, "Can't get window desktop id.");
+			nlogp(sys::e_trace, "Can't get window desktop id.");
+			return std::nullopt;
 		}
-		logp(sys::e_trace, "Can't know if window is in current desktop. ("
-			<< isWindowOnCurrentDesktop << ")");
-
+		logp(sys::e_warning, "There is no desktop manager pointer.");
 		return std::nullopt;
 	}
 
+	bool virt_desktop_t::is_window_in_current_desktop(HWND window) const
+	{
+		BOOL isWindowOnCurrentDesktop = false;
+		if (_manager)
+		{
+			if (_manager->IsWindowOnCurrentVirtualDesktop(window, &isWindowOnCurrentDesktop) != S_OK)
+			{
+				logp(sys::e_warning, "Can't know if window is in current desktop.");
+				return false;
+			}
+			nlogp(sys::e_trace, "Is window in current desktop: "
+				<< isWindowOnCurrentDesktop);
+			return isWindowOnCurrentDesktop;
+		}
+		logp(sys::e_warning, "There is no desktop manager pointer.");
+		return false;
+	}
+
+	bool virt_desktop_t::move_window_to_desktop(HWND window, GUID& guid) const
+	{
+		if (_manager)
+		{
+			LRESULT ok = _manager->MoveWindowToDesktop(window, guid);
+			if (ok != S_OK)
+			{
+				error err{ ok, "Can't move window to desktop" };
+				nlogp(sys::e_warning, "Can't move window to desktop " << win::guid_to_string(&guid));
+				return false;
+			}
+			return true;
+		}
+		logp(sys::e_warning, "There is no desktop manager pointer.");
+		return false;
+	}
 
 } // end namespace win
 

@@ -85,6 +85,7 @@ public:
 	public:
 		WINDOWPLACEMENT _place;
 		HMONITOR _hmon;
+		GUID _desktop{ GUID_NULL };
 	};
 	typedef std::map<std::string, win_t::place_t> places_t;
 	HWND _hwnd;
@@ -213,6 +214,19 @@ namespace sys {
 namespace win {
 
 	std::string guid_to_string(GUID* guid);
+
+	struct hkey_t
+	{
+		HKEY key{ nullptr };
+		~hkey_t() {
+			if (key) {
+				nlogp(sys::e_trace, "Closing HKEY handle.");
+				::RegCloseKey(key);
+			}
+		}
+		operator HKEY () { return key; }
+		PHKEY operator& () { return &key; }
+	};
 
 	class error
 	{

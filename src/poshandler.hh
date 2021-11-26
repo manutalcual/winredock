@@ -25,6 +25,7 @@
 #include "common.hh"
 #include "serializer.hh"
 #include "dev.hh"
+#include "virt_desktop.hh"
 
 BOOL is_alt_tab_window (HWND hwnd);
 BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam);
@@ -45,7 +46,7 @@ namespace win {
 	public:
 		poshandler ();
 		void reposition ();
-		void get_windows ();
+		void get_windows (bool get_desktop = false);
 		void save_configuration (std::string file_name);
 		void load_configuration (std::string file_name);
 		bool window_exist (HWND & hwnd);

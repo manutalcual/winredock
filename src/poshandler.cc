@@ -112,6 +112,7 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 		win_t::place_t place;
 		place._place = win._place;
 		place._hmon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
+
 		win._places[config_name] = place;
 		windows[win._hwnd] = win;
 		//show_status (win._place.showCmd);
@@ -147,7 +148,7 @@ namespace win {
 		EnumWindows (&Enum, (LPARAM)&_windows);
 	}
 
-	void poshandler::get_windows ()
+	void poshandler::get_windows (bool get_desktop)
 	{
 		logf ();
 		if (_clearing) {
@@ -159,6 +160,32 @@ namespace win {
 		_windows.clear ();
 		// Get windows opened
 		EnumWindows (&Enum, (LPARAM)&_windows);
+
+		if (get_desktop) {
+			virt_desktop_t virtual_desktops;
+			dev d;
+			std::string config_name = sys::itoa(d.width());
+			config_name += "_";
+			config_name += sys::itoa(d.height());
+			config_name += "_";
+			config_name += sys::itoa(d.monitors());
+			//auto cur_desktop = virtual_desktops.get_current_desktop_id();
+			auto cur_desktop = virtual_desktops.get_desktop_id_from_current_session();
+			//win::virt_desktop_t::opt_guid_vect vect = virtual_desktops.get_virtual_desktop_ids_from_registry(win::virt_desktop_t::get_virtual_desktops_reg_key());
+
+			for (auto& [key, window] : _windows) {
+				nlogp(sys::e_trace, "Window '" << window._title << "'");
+				virt_desktop_t::opt_guid win_desktop_guid = virtual_desktops.get_desktop_id_for_window(key);
+				if (win_desktop_guid.has_value()) {
+					window._places[config_name]._desktop = win_desktop_guid.value();
+					nlogp(sys::e_trace, "   GUID: "
+						<< win::guid_to_string(&window._places[config_name]._desktop));
+				}
+				else if (virtual_desktops.is_window_in_current_desktop(key)) {
+					window._places[config_name]._desktop = cur_desktop.value();
+				}
+			}
+		}
 		_clearing = false;
 		nlogp (sys::e_debug, "Got current desktop windows. (not clearing anymore)");
 	}
@@ -196,16 +223,27 @@ namespace win {
 					  "Clearing has reached 1000 (so reposition wait has to be forced.");
 			}
 		}
+		virt_desktop_t virtual_desktops;
+		dev d;
+		std::string config_name = sys::itoa(d.width());
+		config_name += "_";
+		config_name += sys::itoa(d.height());
+		config_name += "_";
+		config_name += sys::itoa(d.monitors());
+		//auto cur_desktop = virtual_desktops.get_current_desktop_id();
+		//auto cur_desktop = virtual_desktops.get_desktop_id_from_current_session();
 		logp (sys::e_debug, "Repositioning.");
 		mapwin_t::iterator begin = _windows.begin();
 		mapwin_t::iterator end = _windows.end();
 		for (; begin != end; ++begin) {
-			logp (sys::e_debug, "Setting placement for '"
-				  << begin->second._class_name << "': "
-				  << ", top " << begin->second._place.rcNormalPosition.top
-				  << ", left " << begin->second._place.rcNormalPosition.left
-				  << ", right " << begin->second._place.rcNormalPosition.right
-				  << ", bottom " << begin->second._place.rcNormalPosition.bottom);
+			logp(sys::e_debug, "Setting placement for '"
+				<< begin->second._title << "' class '"
+				<< begin->second._class_name << "': "
+				<< ", top " << begin->second._place.rcNormalPosition.top
+				<< ", left " << begin->second._place.rcNormalPosition.left
+				<< ", right " << begin->second._place.rcNormalPosition.right
+				<< ", bottom " << begin->second._place.rcNormalPosition.bottom);
+#if 0
 			if (begin->second._place.showCmd == SW_MAXIMIZE) {
 				WINDOWPLACEMENT wp = begin->second._place;
 				wp.showCmd = SW_RESTORE;
@@ -215,10 +253,28 @@ namespace win {
 				ShowWindow (begin->second._hwnd, SW_HIDE);
 				ShowWindow (begin->second._hwnd, SW_SHOW);
 			}
+#endif
+			begin->second._place.flags |= WPF_ASYNCWINDOWPLACEMENT;
+			SetWindowPlacement(begin->second._hwnd, &begin->second._place);
 			if (! SetWindowPlacement(begin->second._hwnd, &begin->second._place)) {
 				logp (sys::e_debug, "Can't set window placement for last window.");
 				win::error error ("Can't reposition window.");
 			} else {
+				if (begin->second._places[config_name]._desktop != GUID_NULL)
+				{
+					if (!virtual_desktops.move_window_to_desktop(begin->second._hwnd, begin->second._places[config_name]._desktop))
+					{
+						logp(sys::e_warning, "Can't move window '"
+							<< begin->second._title << "' to desktop "
+							<< guid_to_string(&begin->second._places[config_name]._desktop));
+					}
+					else
+					{
+						logp(sys::e_info, "Window moved '"
+							<< begin->second._title << "' to desktop "
+							<< guid_to_string(&begin->second._places[config_name]._desktop));
+					}
+				}
 				ShowWindow (begin->second._hwnd, SW_HIDE);
 				//ShowWindow (begin->second._hwnd, SW_RESTORE);
 				ShowWindow (begin->second._hwnd, SW_SHOW);

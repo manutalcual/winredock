@@ -66,6 +66,8 @@ namespace win {
 		opt_guid_vect get_virtual_desktop_ids_from_registry(HKEY hKey) const;
 
 		opt_guid get_desktop_id_for_window(HWND window) const;
+		bool is_window_in_current_desktop(HWND window) const;
+		bool move_window_to_desktop(HWND window, GUID& guid) const;
 
 
 

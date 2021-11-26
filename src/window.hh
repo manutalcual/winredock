@@ -36,6 +36,7 @@
 
 #include "dev.hh"
 #include "poshandler.hh"
+#include "virt_desktop.hh"
 
 namespace win {
 
@@ -195,13 +196,6 @@ namespace win {
 					register_notification (&guid);
 				}
 			}
-			_timer = SetTimer (_hwnd, 1, 1000, (TIMERPROC)NULL);
-			if (! _timer) {
-				logp (sys::e_debug, "Can't create timer.");
-			} else {
-				logp (sys::e_debug, "Timer created: "
-					  << _timer);
-			}
 		}
 
 		LRESULT handle (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -241,6 +235,7 @@ namespace win {
 				if (! _funcmap[message] (hwnd, message, wParam, lParam)) {
 					logp (sys::e_debug, "Error handling message: " << message << ".");
 				}
+
 			}
 				break;
 			case WM_SYSCOMMAND:
@@ -300,7 +295,12 @@ namespace win {
 			}
 				break;
 			case WM_TIMER: {
-				logp (sys::e_debug, "Receive WM_TIMER event.");
+				logp (sys::e_trace, "Receive WM_TIMER event.");
+				if (!_repositioned)
+				{
+					logp(sys::e_trace, "WM_TIMER event skipped.");
+					return 0;
+				}
 				logp (sys::e_debug, "Actual screen: ");
 				dev d;
 				d.print ();
@@ -325,11 +325,13 @@ namespace win {
 						*/
 						logp (sys::e_debug, "Repositioning windows: '"
 							  << config_name << "'.");
+						_repositioned = false;
 						_repos[config_name].reposition ();
+						_repositioned = true;
 					} else {
 						logp (sys::e_debug, "Getting new configuration: '"
 							  << config_name << "'.");
-						_repos[config_name].get_windows ();
+						_repos[config_name].get_windows (true);
 					}
 					_last_screen = d;
 					_screen_size = d;
@@ -343,7 +345,7 @@ namespace win {
 					config_name += sys::itoa(d.monitors());
 					logp (sys::e_debug, "Getting configuration: '"
 						  << config_name << "'.");
-					_repos[config_name].get_windows ();
+					_repos[config_name].get_windows (true);
 					_last_screen = d;
 				} else if (d == _screen_size && _changing_resolution) {
 					std::string config_name = sys::itoa(d.width());
@@ -354,7 +356,7 @@ namespace win {
 					logp (sys::e_debug,
 						  "Getting configuration with spurious device notification: '"
 						  << config_name << "'.");
-					_repos[config_name].get_windows ();
+					_repos[config_name].get_windows (true);
 					_last_screen = d;
 				}
 				return 0;
@@ -476,8 +478,18 @@ namespace win {
 		WPARAM loop ()
 		{
 			MSG msg;
+
+			_timer = SetTimer(_hwnd, 2, 3000, (TIMERPROC)NULL);
+			if (!_timer) {
+				logp(sys::e_debug, "Can't create timer.");
+			}
+			else {
+				logp(sys::e_debug, "Timer created: "
+					<< _timer);
+			}
+
 			while (GetMessage (&msg, NULL, 0, 0)) {
-				if (msg.message == WM_TIMER) {
+				if (msg.message == WM_TIMER && msg.wParam != 1) {
 					msg.hwnd = _hwnd;
 				}
 				TranslateMessage (&msg);

@@ -50,6 +50,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, int
 
 	file_name = changedir.path() + "\\" + file_name;
 
+	::CoInitialize(nullptr);
+
 	win::window<c_class_name,
 		WndProc,
 		(CS_HREDRAW | CS_VREDRAW),
