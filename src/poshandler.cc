@@ -21,6 +21,8 @@
 //   02110-1301	USA
 //
 #include "poshandler.hh"
+// disable size_t to int conversion warning
+#pragma warning(disable:4267)
 
 BOOL is_alt_tab_window(HWND hwnd)
 {

@@ -136,7 +136,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 			if(uHitTest == HTCLIENT)
 				return HTCAPTION;
 			else
-				return uHitTest;
+				return (DWORD)uHitTest;
 		};
 
 	app[WM_TRAYICON] =
@@ -174,7 +174,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 
 	logp (sys::e_debug, "En creations, begin the main loop.");
 
-	return app.loop(); //msg.wParam;
+	return (int) app.loop(); //msg.wParam;
 }
 
 LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)

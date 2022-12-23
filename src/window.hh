@@ -37,6 +37,8 @@
 #include "dev.hh"
 #include "poshandler.hh"
 
+// disable size_t to int conversion warning
+#pragma warning(disable:4267)
 namespace mcm {
 
 	extern GUID power;
@@ -221,7 +223,7 @@ namespace mcm {
 				logp (sys::e_debug, "WM_CREATE message received.");
 				logp (sys::e_debug, "Capturing initial configuration.");
 				dev d;
-				std::string config_name = sys::itoa(d.width());
+				std::string config_name = sys::itoa((int)d.width());
 				config_name += "_";
 				config_name += sys::itoa(d.height());
 				config_name += "_";
@@ -446,7 +448,7 @@ namespace mcm {
 		{
 			if (_menu) {
 				AppendMenu (_menu, flags, item, text);
-				_funcmap[item] = func;;
+				_funcmap[(unsigned long)item] = func;;
 			}
 			return *this;
 		}

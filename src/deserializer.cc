@@ -25,6 +25,9 @@
 //
 #include "deserializer.hh"
 
+// disable size_t to int conversion warning
+#pragma warning(disable:4267)
+
 namespace mcm {
 
 	deserializer_t::deserializer_t (std::string file_name, mapwin_t & windows)

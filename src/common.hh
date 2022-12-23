@@ -95,6 +95,8 @@ public:
 
 	win_t ()
 		: _hwnd{},
+		  _hdc{},
+		  _place{},
 		  _deserialized{},
 		  _erase{},
 		  _off_screen{}
