@@ -21,6 +21,8 @@
 //   02110-1301	USA
 //
 #include "poshandler.hh"
+#include <shellscalingapi.h>
+
 // disable size_t to int conversion warning
 #pragma warning(disable:4267)
 
@@ -114,6 +116,18 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 		win_t::place_t place;
 		place._place = win._place;
 		place._hmon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
+		
+/*
+		if (win._class_name.starts_with("Chrome_WidgetWin_1Dknn\"Dtqqmu\"/"))
+		{
+			while (1) break;
+		}
+*/
+		UINT x = 0;
+		UINT y = 0;
+		GetDpiForMonitor(place._hmon, MDT_EFFECTIVE_DPI, &x, &y);
+		place._scale = MulDiv(100, x, USER_DEFAULT_SCREEN_DPI);
+
 		win._places[config_name] = place;
 		windows[win._hwnd] = win;
 		//show_status (win._place.showCmd);
@@ -186,7 +200,7 @@ namespace mcm {
 		uniform_windows ();
 	}
 
-	void poshandler::reposition ()
+	void poshandler::reposition(std::string config_name)
 	{
 		logf ();
 		if (_clearing) {
@@ -199,6 +213,14 @@ namespace mcm {
 			}
 		}
 		logp (sys::e_debug, "Repositioning.");
+
+		// Get the scaling of the primary display
+		POINT ptZero = { 0, 0 };
+		HMONITOR hPrimary = MonitorFromPoint(ptZero, MONITOR_DEFAULTTOPRIMARY);
+		UINT x, y;
+		GetDpiForMonitor(hPrimary, MDT_EFFECTIVE_DPI, &x, &y);
+		int primary_scale = MulDiv(100, x, USER_DEFAULT_SCREEN_DPI);
+
 		mapwin_t::iterator begin = _windows.begin();
 		mapwin_t::iterator end = _windows.end();
 		for (; begin != end; ++begin) {
@@ -208,6 +230,25 @@ namespace mcm {
 				  << ", left " << begin->second._place.rcNormalPosition.left
 				  << ", right " << begin->second._place.rcNormalPosition.right
 				  << ", bottom " << begin->second._place.rcNormalPosition.bottom);
+			
+			// If the scale for this monitor doesn't match the primary monitor's scale, then adjust the desired width and height.
+			// SetWindowPlacement seems to incorrectly adjust the desired width and height according to the difference in scale from the primary monitor.
+			logp(sys::e_debug, "primary scale: " << primary_scale << "  device scale: " << begin->second._places[config_name]._scale << "  hmon: " << begin->second._places[config_name]._hmon);
+			if (begin->second._places[config_name]._scale != primary_scale) {
+				logp(sys::e_debug, "Adjusting requested size for window based on monitor scaling");
+				float scale_factor = (float)primary_scale / begin->second._places[config_name]._scale;
+				int new_cx = (int)(scale_factor * (begin->second._place.rcNormalPosition.right - begin->second._place.rcNormalPosition.left));
+				int new_cy = (int)(scale_factor * (begin->second._place.rcNormalPosition.bottom - begin->second._place.rcNormalPosition.top));
+				begin->second._place.rcNormalPosition.right = begin->second._place.rcNormalPosition.left + new_cx;
+				begin->second._place.rcNormalPosition.bottom = begin->second._place.rcNormalPosition.top + new_cy;
+				logp(sys::e_debug, "New placement for '"
+					<< begin->second._class_name << "': "
+					<< ", top " << begin->second._place.rcNormalPosition.top
+					<< ", left " << begin->second._place.rcNormalPosition.left
+					<< ", right " << begin->second._place.rcNormalPosition.right
+					<< ", bottom " << begin->second._place.rcNormalPosition.bottom);
+			}
+
 			if (begin->second._place.showCmd == SW_MAXIMIZE) {
 				WINDOWPLACEMENT wp = begin->second._place;
 				wp.showCmd = SW_RESTORE;

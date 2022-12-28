@@ -44,7 +44,7 @@ namespace mcm {
 		};
 	public:
 		poshandler ();
-		void reposition ();
+		void reposition (std::string config_name);
 		void get_windows ();
 		void save_configuration (std::string file_name);
 		void load_configuration (std::string file_name);

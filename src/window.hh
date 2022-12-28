@@ -39,6 +39,7 @@
 
 // disable size_t to int conversion warning
 #pragma warning(disable:4267)
+
 namespace mcm {
 
 	extern GUID power;
@@ -323,7 +324,7 @@ namespace mcm {
 						*/
 						logp (sys::e_debug, "Repositioning windows: '"
 							  << config_name << "'.");
-						_repos[config_name].reposition ();
+						_repos[config_name].reposition(config_name);
 					} else {
 						logp (sys::e_debug, "Getting new configuration: '"
 							  << config_name << "'.");

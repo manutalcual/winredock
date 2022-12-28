@@ -81,6 +81,7 @@ public:
 	public:
 		WINDOWPLACEMENT _place;
 		HMONITOR _hmon;
+		int _scale;
 	};
 	typedef std::map<std::string, win_t::place_t> places_t;
 	HWND _hwnd;
