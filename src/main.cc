@@ -38,6 +38,14 @@ std::string file_name{"window_list.json"};
 
 int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, int iCmdShow )
 {
+	// Only allow one instance of the app to run
+	HANDLE mutex = CreateMutex(NULL, TRUE, "WinReDock:{0C023FEF-AC05-47A7-BC3A-5270916D768C}");
+	if (ERROR_ALREADY_EXISTS == GetLastError())
+	{
+		// Another instance is already running
+		return 1;
+	}
+
 	logf ();
 	logp (sys::e_debu, "Creating window with class name: " << c_class_name);
 
@@ -80,8 +88,8 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 							   TEXT("Exit"),
 							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 								   logp (sys::e_debug, "Calling to exit app.");
-								   PostQuitMessage (0) ;
-								   return app; // this should never be reached
+								   DestroyWindow(hwnd);
+								   return app;
 							   })
 				.start_timer();
 				
@@ -125,7 +133,11 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 
 	logp (sys::e_debug, "En creations, begin the main loop.");
 
-	return (int) app.loop(); //msg.wParam;
+	int app_result = (int) app.loop(); //msg.wParam;
+
+	ReleaseMutex(mutex);
+	CloseHandle(mutex);
+	return app_result;
 }
 
 LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)

@@ -40,6 +40,8 @@
 // disable size_t to int conversion warning
 #pragma warning(disable:4267)
 
+extern const char c_taskbar_icon_text[];
+
 namespace mcm {
 
 	using Func = std::function<DWORD(HWND, UINT, WPARAM, LPARAM)>;
@@ -114,19 +116,6 @@ namespace mcm {
 		~window ()
 		{
 			logf ();
-			if( !IsWindowVisible(_hwnd)) {
-				Shell_NotifyIcon (NIM_DELETE, &_notify_icon_data);
-			}
-			if (KillTimer(_hwnd, 1)) {
-				logp (sys::e_debug, "Timer killed.");
-			} else {
-				logp (sys::e_debug, "Can't kill timer.");
-				if (!KillTimer(_hwnd, _timer)) {
-					logp (sys::e_debug, "Second try killing the timer failed also.");
-				} else {
-					logp (sys::e_debug, "Timer killed on second try.");
-				}
-			}
 		}
 
 		operator bool ()
@@ -153,6 +142,14 @@ namespace mcm {
 		{
 			logp (sys::e_debug, "Registering taskbar creation message.");
 			_taskbar_created_msg = RegisterWindowMessageA("TaskbarCreated");
+			
+			// It's possible that User Interface Privilege Isolation may block the window
+			// from receiving the message, so adjust our message filter.
+			if (!ChangeWindowMessageFilterEx(_hwnd, _taskbar_created_msg, MSGFLT_ALLOW, NULL))
+			{
+				logp(sys::e_debug, "Error updating the window message filter.");
+			}
+
 			return *this;
 		}
 
@@ -238,6 +235,8 @@ namespace mcm {
 				break;
 			case WM_DESTROY:
 				logp (sys::e_debug, "WM_DESTROY message received.");
+				KillTimer(hwnd, _timer);
+				Shell_NotifyIcon(NIM_DELETE, &_notify_icon_data);
 				PostQuitMessage (0);
 				break;
 			case WM_SETFOCUS:
@@ -328,7 +327,14 @@ namespace mcm {
 			}
 				break;
 			default:
-				nlogp (sys::e_debug, "Not handled message: " << message);
+				if (message == _taskbar_created_msg)
+				{
+					add_taskbar_icon<NIF_ICON | NIF_MESSAGE | NIF_TIP, ID_TRAY_APP_ICON, WM_TRAYICON, c_taskbar_icon_text>();
+				}
+				else
+				{
+					nlogp(sys::e_debug, "Not handled message: " << message);
+				}
 				break;
 			}
 			nlogp (sys::e_debug, "hwnd " << hwnd << ", " << message
