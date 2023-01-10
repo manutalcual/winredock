@@ -232,27 +232,6 @@ namespace mcm {
 		logp (sys::e_debug, "Got current desktop windows. (not clearing anymore)");
 	}
 
-	void poshandler::save_configuration (std::string file_name)
-	{
-		serializer serial (_windows);
-		serial (file_name);
-	}
-
-	void poshandler::load_configuration (std::string file_name)
-	{
-		if (_clearing)
-			return;
-		serializer serial (_windows);
-		if (!serial.deserialize(file_name)) {
-			logp (sys::e_debug, "Ouch! Deserializer failed!");
-		}
-		for (auto & w : _windows) {
-			logp (sys::e_debug, "Poshandler window: " << w.second._deserialized
-				  << ", '" << w.second._title << "'.");
-		}
-		uniform_windows ();
-	}
-
 	void poshandler::reposition(std::string config_name)
 	{
 		logf ();
@@ -316,131 +295,18 @@ namespace mcm {
 				ShowWindow (begin->second._hwnd, SW_HIDE);
 				ShowWindow (begin->second._hwnd, SW_SHOW);
 			}
+			logp(sys::e_debug, "             ------ Calling SetWindowPlacement ------");
 			if (! SetWindowPlacement(begin->second._hwnd, &begin->second._place)) {
 				logp (sys::e_debug, "Can't set window placement for last window.");
 				win_error error ("Can't reposition window.");
 			} else {
+				logp(sys::e_debug, "             ------ Calling Hide/Show ------");
 				ShowWindow (begin->second._hwnd, SW_HIDE);
 				ShowWindow (begin->second._hwnd, SW_SHOW);
 			}
+			logp(sys::e_debug, "             ------ Finished Repositioning ------");
 		}
-	}
-
-	bool poshandler::window_exist (HWND & hwnd)
-	{
-		return _windows.find(hwnd) != _windows.end();
-	}
-
-	void poshandler::remove_window (HWND & hwnd)
-	{
-		logf ();
-		logp (sys::e_debug, "Remove windows does nothing actually");
-	}
-
-	void poshandler::uniform_windows (poshandler & pos)
-	{
-		logf ();
-		if (_clearing) {
-			logp (sys::e_debug, "There is a clearing ongoing so no uniform windows");
-			return;
-		}
-		_clearing = true;
-		logp (sys::e_debug,
-			  "We have to check if one window in current config has been "
-			  "deleted in another screen configuration.");
-		for (auto & item : _windows) {
-			if (! pos.window_exist(item.second._hwnd)) {
-				item.second._erase = true;
-			}
-		}
-
-		mapwin_t::iterator b = _windows.begin();
-		mapwin_t::iterator e = _windows.end();
-		for ( ; b != e; ) {
-			if (b->second._erase) {
-				logp (sys::e_debug, "Deleting window '"
-					  << b->second._class_name
-					  << "', because deleted in other screen config.");
-				_windows.erase (b++);
-			} else {
-				++b;
-			}
-		}
-		logp (sys::e_debug, "Clearing uniformed windows done");
-		_clearing = false;
-	}
-	void poshandler::uniform_windows ()
-	{
-		logf ();
-		if (_clearing) {
-			logp (sys::e_debug, "no uniform windows as we are clearing windows map");
-			return;
-		}
-
-		logp (sys::e_debug, "Go to unform windows between several screen configurations");
-		for (auto & item : _windows) {
-			logp (sys::e_debug, "The window is: "
-				  << item.second._hwnd << ", "
-				  << item.second._deserialized << ", '"
-				  << item.second._class_name << "'.");
-			for (auto & other : _windows) {
-				if (/* item != other and */
-					!item.second._deserialized and
-					other.second._deserialized and
-					other.second._class_name == item.second._class_name and
-					other.second._title == item.second._title)
-				{
-					win_t & realw = item.second; // from file
-					win_t & fakew = other.second; // from OS
-					logp (sys::e_debug, "\tnomalize '"
-						  << realw._deserialized << "', '"
-						  << realw._class_name << "', with '"
-						  << fakew._deserialized << "', '"
-						  << fakew._class_name << "', '"
-						  << fakew._title << "'.");
-					logp (sys::e_debug, "\tMin position: x "
-						  << fakew._place.ptMinPosition.x
-						  << ", y " << fakew._place.ptMinPosition.y);
-					logp (sys::e_debug, "\tMax position: "
-						  << fakew._place.ptMaxPosition.x
-						  << ", y " << fakew._place.ptMaxPosition.y);
-					logp (sys::e_debug, "\tPlacement: "
-						  << fakew._place.ptMaxPosition.x
-						  << ", top " << fakew._place.rcNormalPosition.top
-						  << ", left " << fakew._place.rcNormalPosition.left
-						  << ", right " << fakew._place.rcNormalPosition.right
-						  << ", bottom " << fakew._place.rcNormalPosition.bottom);
-
-					realw._place.length = sizeof(WINDOWPLACEMENT);
-					realw._place.flags = fakew._place.flags;
-					realw._place.showCmd = fakew._place.showCmd;
-					realw._place.ptMinPosition.x = fakew._place.ptMinPosition.x;
-					realw._place.ptMinPosition.y = fakew._place.ptMinPosition.y;
-					realw._place.ptMaxPosition.x = fakew._place.ptMaxPosition.x;
-					realw._place.ptMaxPosition.y = fakew._place.ptMaxPosition.y;
-					realw._place.rcNormalPosition.top = fakew._place.rcNormalPosition.top;
-					realw._place.rcNormalPosition.left = fakew._place.rcNormalPosition.left;
-					realw._place.rcNormalPosition.right = fakew._place.rcNormalPosition.right;
-					realw._place.rcNormalPosition.bottom = fakew._place.rcNormalPosition.bottom;
-					break;
-				}
-			}
-		}
-		logp (sys::e_debug, "Uniform windows got ready to do actually the work");
-		mapwin_t::iterator b = _windows.begin();
-		mapwin_t::iterator e = _windows.end();
-
-		for ( ; b != e; ) {
-			if (b->second._deserialized) {
-				logp (sys::e_debug, "Deleting '"
-					  << b->second._class_name << "', "
-					  << b->second._deserialized << ", as a deserialized window.");
-				_windows.erase (b++);
-			} else {
-				++b;
-			}
-		}
-		logp (sys::e_debug, "Uniform windows finished");
+		logp(sys::e_debug, "Finished repositioning windows.");
 	}
 
 	bool poshandler::get_window_placement (HWND hwnd, WINDOWPLACEMENT & place)

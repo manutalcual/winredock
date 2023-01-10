@@ -148,7 +148,6 @@ namespace mcm {
 			e_failure
 		};
 
-		int atoi (std::string & str);
 		std::string itoa (int str);
 
 		class stat_t

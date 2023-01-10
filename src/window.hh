@@ -42,17 +42,11 @@
 
 namespace mcm {
 
-	extern GUID power;
-
 	using Func = std::function<DWORD(HWND, UINT, WPARAM, LPARAM)>;
 	using FuncProc = LRESULT  (*)(HWND, UINT, WPARAM, LPARAM);
 	extern Func noop; // = [](HWND, UINT, WPARAM, LPARAM) -> DWORD
 
 	const char * get_msg (UINT msg);
-
-	//TIMERPROC Timerproc;
-
-	void Timerproc (HWND Arg1, UINT Arg2, UINT_PTR Arg3, DWORD Arg4);
 
 	template<const char * ClassName,
 			 FuncProc WndProc,
@@ -127,7 +121,7 @@ namespace mcm {
 				logp (sys::e_debug, "Timer killed.");
 			} else {
 				logp (sys::e_debug, "Can't kill timer.");
-				if (KillTimer(_hwnd, _timer)) {
+				if (!KillTimer(_hwnd, _timer)) {
 					logp (sys::e_debug, "Second try killing the timer failed also.");
 				} else {
 					logp (sys::e_debug, "Timer killed on second try.");
@@ -182,31 +176,6 @@ namespace mcm {
 			return *this;
 		}
 
-		void register_all_guids ()
-		{
-			logf ();
-			CONFIGRET ret{ 0 };
-
-			logp (sys::e_debug, "Eumerate GUIDs.");
-			for (size_t i = 0; ret != CR_NO_SUCH_VALUE; ++i) {
-				GUID guid;
-				ret = CM_Enumerate_Classes(i,
-										   &guid,
-										   0);
-				if (ret != CR_NO_SUCH_VALUE) {
-					nlogp (sys::e_debug, "Registering for GUID: " << mcm::guid_to_string(&guid));
-					register_notification (&guid);
-				}
-			}
-			_timer = SetTimer (_hwnd, 1, 1000, (TIMERPROC)NULL);
-			if (! _timer) {
-				logp (sys::e_debug, "Can't create timer.");
-			} else {
-				logp (sys::e_debug, "Timer created: "
-					  << _timer);
-			}
-		}
-
 		LRESULT handle (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			logf ();
@@ -235,10 +204,6 @@ namespace mcm {
 				_last_screen = d;
 				logp (sys::e_debug, "--------------------------------");
 				_ready = true;
-
-				RegisterPowerSettingNotification (_hwnd,
-												  &power,
-												  DEVICE_NOTIFY_WINDOW_HANDLE);
 
 				if (! _funcmap[message] (hwnd, message, wParam, lParam)) {
 					logp (sys::e_debug, "Error handling message: " << message << ".");
@@ -269,11 +234,6 @@ namespace mcm {
 				break;
 			case WM_CLOSE:
 				logp (sys::e_debug, "WM_CLOSE message received.");
-				if (_hdev_notify) {
-					if (! UnregisterDeviceNotification(_hdev_notify)) {
-						logp (sys::e_deug, "UnregisterDeviceNotification failed");
-					}
-				}
 				return 0;
 				break;
 			case WM_DESTROY:
@@ -314,14 +274,6 @@ namespace mcm {
 					config_name += sys::itoa(d.monitors());
 					if (_repos.find(config_name) != _repos.end()) {
 						poshandler & repo = _repos[config_name];
-						nlogp (sys::e_debug, "Uniforming windows: '"
-							  << config_name << "'.");
-						/*
-						for (auto & r : _repos) {
-							if (r.first != config_name)
-								r.second.uniform_windows (repo);
-						}
-						*/
 						logp (sys::e_debug, "Repositioning windows: '"
 							  << config_name << "'.");
 						_repos[config_name].reposition(config_name);
@@ -344,7 +296,23 @@ namespace mcm {
 						  << config_name << "'.");
 					_repos[config_name].get_windows ();
 					_last_screen = d;
+				} 
+				/*  
+				This code is never called because _screen_size is always equal to _last_screen,
+				so the case where the current config differs is handled above.
+				
+				Since _changing_resolution is only potentially set in WM_DEVICECHANGE, this allows us 
+				to remove all of the device notification code and WM_DEVICECHANGE handling.
+
+				Note there were already some issues surrounding the device notification code:
+					1. _changing_resolution is set in WM_DEVICECHANGE, but never unset.
+					2. RegisterDeviceNotification() is called for each known device, but the class has
+					   only one notification handle, which gets overwritten each time Register...() is called.
+					   UnregisterDeviceNotification() should be called for each handle, but is only ever called
+					   on the last handle.
+
 				} else if (d == _screen_size && _changing_resolution) {
+
 					std::string config_name = sys::itoa(d.width());
 					config_name += "_";
 					config_name += sys::itoa(d.height());
@@ -355,60 +323,8 @@ namespace mcm {
 						  << config_name << "'.");
 					_repos[config_name].get_windows ();
 					_last_screen = d;
-				}
+				} */
 				return 0;
-			}
-				break;
-			case WM_DEVICECHANGE: {
-				logp (sys::e_debug, "WM_DEVICECHANGE received!!!!");
-				// Output some messages to the window.
-				switch (wParam)
-				{
-				case DBT_DEVICEARRIVAL:
-					logp(sys::e_debug, "Message: DBT_DEVICEARRIVAL");
-					break;
-				case DBT_DEVICEREMOVECOMPLETE:
-					logp(sys::e_debug, "Message: DBT_DEVICEREMOVECOMPLETE");
-					break;
-				case DBT_DEVNODES_CHANGED: {
-					logp (sys::e_debug, "Changing resolution...");
-					_changing_resolution = true;
-					PDEV_BROADCAST_DEVICEINTERFACE b = (PDEV_BROADCAST_DEVICEINTERFACE) lParam;
-					if (b) {
-						logp (sys::e_debug, "Device param size: " << b->dbcc_size << ", "
-							  << sizeof(DEV_BROADCAST_DEVICEINTERFACE));
-						if (sizeof(*b) > sizeof(DEV_BROADCAST_DEVICEINTERFACE))
-							logp (sys::e_debug, "Device name: " << b->dbcc_name);
-						else
-							logp (sys::e_debug, "Unkown device param type.");
-					} else {
-						logp (sys::e_debug, "There is no device identity param!");
-						dev d;
-						std::string config_name = mcm::sys::itoa(d.width());
-						config_name += "_";
-						config_name += mcm::sys::itoa(d.height());
-						config_name += "_";
-						config_name += mcm::sys::itoa(d.monitors());
-						logp (sys::e_debug, "Current configuration: " << config_name);
-					}
-				}
-					break;
-				default:
-					logp(sys::e_debug, "Message " << wParam << " unhandled: WM_DEVICECHANGE");
-					break;
-				}
-			}
-				break;
-			case WM_POWERBROADCAST: {
-				logp (sys::e_debug, "Received a WM_POWERBROADCAST");
-				//_powersetting = !_powersetting;
-				switch (wParam) {
-				case PBT_POWERSETTINGCHANGE: {
-					POWERBROADCAST_SETTING * p = (POWERBROADCAST_SETTING *)lParam;
-					logp (sys::e_debug, "Changing powesettings.");
-					break;
-				}
-				}
 			}
 				break;
 			default:
@@ -420,21 +336,18 @@ namespace mcm {
 			return DefWindowProc(hwnd, message, wParam, lParam);
 		}
 
-		window & minimize ()
+		window & start_timer()
 		{
-			logf ();
-			Shell_NotifyIcon (NIM_ADD, &_notify_icon_data);
-			ShowWindow (_hwnd, SW_HIDE);
+			_timer = SetTimer(_hwnd, 1, 1000, NULL);
+			if (!_timer) {
+				logp(sys::e_debug, "Can't create timer.");
+			}
+			else {
+				logp(sys::e_debug, "Timer created: "
+					<< _timer);
+			}
 			return *this;
 		}
-
-		window & restore ()
-		{
-			logf ();
-			ShowWindow (_hwnd, SW_SHOW);
-			return *this;
-		}
-
 
 		window & create_menu (Func func)
 		{
@@ -498,7 +411,6 @@ namespace mcm {
 		bool _ready;
 		Func _icon_click;
 		std::map<DWORD, callable> _funcmap;
-		HDEVNOTIFY _hdev_notify;
 		dev _screen_size;
 		dev _last_screen;
 		UINT_PTR _timer;
@@ -506,36 +418,6 @@ namespace mcm {
 		bool _repositioned;
 		maprepohandlers_t _repos;
 		bool _powersetting;
-
-		bool register_notification (GUID * guid)
-		{
-			nlogf ();
-			DEV_BROADCAST_DEVICEINTERFACE NotificationFilter;
-
-			ZeroMemory (&NotificationFilter, sizeof(NotificationFilter));
-			// sizeof(DEV_BROADCAST_HDR);
-			NotificationFilter.dbcc_size = sizeof(DEV_BROADCAST_DEVICEINTERFACE);
-			NotificationFilter.dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE;
-			//NotificationFilter.dbcc_devicetype = DBT_DEVTYP_HANDLE;
-			NotificationFilter.dbcc_classguid = *guid;
-
-			_hdev_notify = RegisterDeviceNotification(
-				_hwnd,                       // events recipient
-				&NotificationFilter,        // type of device
-				DEVICE_NOTIFY_WINDOW_HANDLE // type of recipient
-											// handle
-				| DEVICE_NOTIFY_ALL_INTERFACE_CLASSES
-				);
-
-			if (NULL == _hdev_notify)
-			{
-				logp (sys::e_debug, "Register notification failed for GUID: "
-					  << mcm::guid_to_string(guid));
-				return FALSE;
-			}
-			return true;
-		}
-
 	};
 
 } // namespace mcm

@@ -63,40 +63,14 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 			app.create_menu (
 				// Context left click function
 				[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-					//positioner.reposition ();
 					return app;
 				}) // Context menus and functions
-				/*
-				  There is no use for menu entries.
-				  In previous versions window repositioning was done
-				  by menu clicking, now it is automatic, so these
-				  are no more useful. I left them here just becaus I
-				  have some plans for the future that involve menu
-				  handling and I don´t want to rewrite them.
-				 */
 				.add_menu_item(MF_STRING,
-							   ID_TRAY_LOAD_WINDOWS_MENU,
-							   TEXT("Get windows"),
+							   ID_TRAY_ABOUT_MENU_ITEM,
+							   TEXT("About WinReDock..."),
 							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-								   logp (sys::e_debug, "Call to load windows.");
-								   //positioner.get_windows ();
-								   return app;
-							   })
-				.add_menu_item(MF_STRING,
-							   ID_TRAY_SAVE_MENU,
-							   TEXT("Save config."),
-							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-								   logp (sys::e_debug, "Calling to serialize data.");
-								   //positioner.save_configuration (file_name);
-								   logp (sys::e_debug, "Ok. Done.");
-								   return app;
-							   })
-				.add_menu_item(MF_STRING,
-							   ID_TRAY_LOAD_MENU,
-							   TEXT("Read config."),
-							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-								   logp (sys::e_debug, "Calling to read file.");
-								   //positioner.load_configuration (file_name);
+								   logp (sys::e_debug, "Display about dialog.");
+								   // Not yet implemented
 								   return app;
 							   })
 				.add_menu_item(MF_SEPARATOR, 0, NULL)
@@ -109,35 +83,14 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 								   PostQuitMessage (0) ;
 								   return app; // this should never be reached
 							   })
-				.register_all_guids ();
+				.start_timer();
+				
 			return app;
 		};
 
 	/*
 	  These are Windows operating system messages we react on.
 	*/
-
-	app[WM_SYSCOMMAND] =
-		[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-			logf ();
-			switch (wParam & 0xfff0) {
-			case SC_MINIMIZE:
-			case SC_CLOSE:
-				app.minimize ();
-				break;
-			}
-			return app;
-		};
-
-	app[WM_NCHITTEST] =
-		[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-			logf ();
-			LRESULT uHitTest = DefWindowProc(hwnd, WM_NCHITTEST, wParam, lParam);
-			if(uHitTest == HTCLIENT)
-				return HTCAPTION;
-			else
-				return (DWORD)uHitTest;
-		};
 
 	app[WM_TRAYICON] =
 		[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
@@ -155,8 +108,6 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 				hwnd,
 				NULL
 				);
-
-			//SendMessage (hwnd, WM_NULL, 0, 0);
 			return clicked;
 		};
 
