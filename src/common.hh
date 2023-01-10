@@ -39,6 +39,7 @@
 #include <iostream>
 #include <map>
 #include <fstream>
+#include <chrono>
 
 #include <windows.h>
 #include <shlobj.h>
@@ -56,8 +57,8 @@
 
 
 #ifdef WITH_LOG
-#define logp(p, str) mcm::sys::log << "[" << __FILE__	\
-	<< ":" << __LINE__ << "] " << mcm::sys::log_tabs::tabs << str << std::endl
+#define logp(p, str) mcm::sys::log << "[" << std::format("{0:%F_%T}", std::chrono::system_clock::now()) << "] [" << __FILE__	\
+	<< ":" << __LINE__ << "]" << mcm::sys::log_tabs::tabs << str << std::endl
 #define logf() mcm::sys::log_tabs t___; \
 	mcm::sys::log << "[" << __FILE__ \
 	<< ":" << __LINE__ << "] " \

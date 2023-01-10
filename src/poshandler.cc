@@ -23,6 +23,9 @@
 #include "poshandler.hh"
 #include <shellscalingapi.h>
 
+// error code set if enumeration is intentionally cancelled
+#define ENUM_CANCELLED 0x20000001
+
 // disable size_t to int conversion warning
 #pragma warning(disable:4267)
 
@@ -47,22 +50,19 @@ BOOL is_alt_tab_window(HWND hwnd)
     return (hwndWalk == hwnd) && !(exStyles & WS_EX_TOOLWINDOW);
 }
 
+static size_t enum_count = 0;
+static std::string enum_config = "";
 BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 {
 	nlogf ();
-	static size_t count = 0;
 	mapwin_t & windows = *(mapwin_t *)lParam;
 	const int BUF_SIZE = 1024;
 	char class_name[BUF_SIZE];
 
 	::memset (class_name, 0, BUF_SIZE);
 
-	logp (sys::e_debug, "--- Enum " << ++count << " ---");
-	mcm::poshandler::get_class_name (hwnd, (LPSTR)class_name, BUF_SIZE);
-	logp (sys::e_debug, "Window visible: " << IsWindowVisible(hwnd)
-		  << ", zoomed " << IsZoomed(hwnd)
-		  << ", iconic " << IsIconic(hwnd));
-	nlogp (sys::e_debug, "Enum: Get class name: '" << class_name << "'");
+	logp (sys::e_debug, "--- Enum " << ++enum_count << " ---");
+	mcm::poshandler::get_class_name(hwnd, (LPSTR)class_name, BUF_SIZE);
 
     if (is_alt_tab_window(hwnd) && IsWindowVisible(hwnd)) {
 		if (mcm::poshandler::discard_window_app_frame((const char *)class_name,
@@ -72,6 +72,11 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 			nlogp (sys::e_debug, "    " << class_name);
 			return TRUE;
 		}
+
+		logp(sys::e_debug, "Window visible: " << IsWindowVisible(hwnd)
+			<< ", zoomed " << IsZoomed(hwnd)
+			<< ", iconic " << IsIconic(hwnd));
+		nlogp(sys::e_debug, "Enum: Get class name: '" << class_name << "'");
 
 		win_t win;
         CHAR buf[260];
@@ -83,6 +88,16 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 		config_name += "_";
 		config_name += mcm::sys::itoa(d.monitors());
 		nlogp (sys::e_debug, "Current configuration: " << config_name);
+		if (enum_config != config_name)
+		{
+			// The current device configuration changed midway through enumeration.  
+			// We don't want to save the current position under the new configuration name,
+			// so cancel the enumeration instead.  Cancelling with this return code will
+			// use the last known placement for the windows we haven't yet enumerated.
+			logp(sys::e_debug, "Detected a configuration change during window enumeration.  Cancelling enumeration.");
+			SetLastError(ENUM_CANCELLED);
+			return FALSE;
+		}
 
 		win._hwnd = hwnd;
         GetWindowTextA(hwnd, buf, ARRAYSIZE(buf));
@@ -117,12 +132,6 @@ BOOL CALLBACK Enum (HWND hwnd, LPARAM lParam)
 		place._place = win._place;
 		place._hmon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
 		
-/*
-		if (win._class_name.starts_with("Chrome_WidgetWin_1Dknn\"Dtqqmu\"/"))
-		{
-			while (1) break;
-		}
-*/
 		UINT x = 0;
 		UINT y = 0;
 		GetDpiForMonitor(place._hmon, MDT_EFFECTIVE_DPI, &x, &y);
@@ -160,7 +169,23 @@ namespace mcm {
 		: _clearing (false)
 	{
 		logf ();
+		
+		/*  
+		We don't need to enumerate windows in this constructor.  
+		The only time a new poshandler instance is created is in the handler for WM_TIMER when a new resolution is detected - and we immediately call get_windows() on the new instance.
+		This code was resulting in EnumWindows being called twice in succession.
+
+		enumCount = 0;
+		dev d;
+		std::string config_name = mcm::sys::itoa(d.width());
+		config_name += "_";
+		config_name += mcm::sys::itoa(d.height());
+		config_name += "_";
+		config_name += mcm::sys::itoa(d.monitors());
+		enumConfig = config_name;
+		logp(sys::e_debug, "EnumWindows for new poshandler instance.  Current config: '" << config_name << "'");
 		EnumWindows (&Enum, (LPARAM)&_windows);
+		*/
 	}
 
 	void poshandler::get_windows ()
@@ -172,9 +197,37 @@ namespace mcm {
 		}
 		logp (sys::e_debug, "Getting current desktop windows. (clearing windows map)");
 		_clearing = true;
-		_windows.clear ();
+		mapwin_t new_map;
+
+		// Save off the starting config name and reset the enumeration count
+		dev d;
+		std::string config_name = mcm::sys::itoa(d.width());
+		config_name += "_";
+		config_name += mcm::sys::itoa(d.height());
+		config_name += "_";
+		config_name += mcm::sys::itoa(d.monitors());
+		enum_config = config_name;
+		enum_count = 0;
+
 		// Get windows opened
-		EnumWindows (&Enum, (LPARAM)&_windows);
+		BOOL enum_result = EnumWindows (&Enum, (LPARAM)&new_map);
+		if (!enum_result && GetLastError() == ENUM_CANCELLED)
+		{
+			logp(sys::e_debug, "Enumeration cancelled - preserving remainder of window placements.");
+
+			// Enumeration was interrupted, likely because of a configuration change.
+			// Retrieve the values of whatever windows we didn't get to from the existing collection.
+			mapwin_t::iterator begin = _windows.begin();
+			mapwin_t::iterator end = _windows.end();
+			for (; begin != end; ++begin) {
+				if (new_map.find(begin->first) == new_map.end())
+				{
+					new_map[begin->first] = begin->second;
+				}
+			}
+		}
+		_windows = new_map;
+		
 		_clearing = false;
 		logp (sys::e_debug, "Got current desktop windows. (not clearing anymore)");
 	}
@@ -209,7 +262,7 @@ namespace mcm {
 				;
 			if (clearing_count > 999) {
 				logp (sys::e_debug,
-					  "Clearing has reached 1000 (so reposition wait has to be forced.");
+					"Clearing has reached 1000 (so reposition wait has to be forced.");
 			}
 		}
 		logp (sys::e_debug, "Repositioning.");
@@ -249,12 +302,17 @@ namespace mcm {
 					<< ", bottom " << begin->second._place.rcNormalPosition.bottom);
 			}
 
+
+			// Not entirely sure why these steps are necessary, but if they are not called like this
+			// (twice for maximized windows, once otherwise, each followed by hide/show), then
+			// various artifacts occur such as:
+			// - Maximized windows not restoring as maximized
+			// - Maximized windows restoring maximized but not restoring to the correct monitor
 			if (begin->second._place.showCmd == SW_MAXIMIZE) {
 				WINDOWPLACEMENT wp = begin->second._place;
 				wp.showCmd = SW_RESTORE;
 				wp.flags = WPF_ASYNCWINDOWPLACEMENT;
 				SetWindowPlacement (begin->second._hwnd, &wp);
-				//ShowWindow (begin->second._hwnd, SW_RESTORE);
 				ShowWindow (begin->second._hwnd, SW_HIDE);
 				ShowWindow (begin->second._hwnd, SW_SHOW);
 			}
@@ -263,7 +321,6 @@ namespace mcm {
 				win_error error ("Can't reposition window.");
 			} else {
 				ShowWindow (begin->second._hwnd, SW_HIDE);
-				//ShowWindow (begin->second._hwnd, SW_RESTORE);
 				ShowWindow (begin->second._hwnd, SW_SHOW);
 			}
 		}
