@@ -13,7 +13,7 @@ positions and sizes, write a configuration file and be able to restore
 the application windows to their previous sizes and positions.
 
 It is a *tool* so don't expect to be a production class
-application. (Comments and requess for improvement are welcome,
+application. (Comments and requests for improvement are welcome,
 however.)
 
 ### Installation
@@ -24,7 +24,7 @@ however.)
 
 ### Use instructions
 
-There will be an icon in your traybar showing a gear with a green arrow. Redock will automatically save window positions and restore them when a display-change happens. Ignore the menu options, they're not needed (and deprecated).
+There will be an icon in your traybar showing a gear with a green arrow. Redock will automatically save window positions and restore them when a display-change happens.
 
 ### Compilation (MS Visual Studio)
 

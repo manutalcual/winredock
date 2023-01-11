@@ -26,6 +26,14 @@
 #include "main.hh"
 #include "dev.hh"
 
+// Enable the latest common controls
+#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' ""version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+
+// Link with necessary libraries
+#pragma comment (lib, "comctl32.lib")
+#pragma comment (lib, "version.lib")
+
+
 const char c_class_name[] = "WinReDock";
 const char c_window_title[] = "WinReDock - restore windows to pre-undock positions";
 const char c_taskbar_icon_text[] = "WinReDock -- tooling; dockerify after undock!";
@@ -35,6 +43,8 @@ mcm::window<c_class_name,
 			c_window_title> * g_app = nullptr;
 
 std::string file_name{"window_list.json"};
+
+INT_PTR CALLBACK AboutProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, int iCmdShow )
 {
@@ -78,7 +88,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 							   TEXT("About WinReDock..."),
 							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 								   logp (sys::e_debug, "Display about dialog.");
-								   // Not yet implemented
+								   DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_DIALOG1), hwnd, AboutProc);
 								   return app;
 							   })
 				.add_menu_item(MF_SEPARATOR, 0, NULL)
@@ -150,4 +160,89 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	logp (sys::e_debug, "Return from handled: "
 		  << r);
 	return r;
+}
+
+INT_PTR CALLBACK AboutProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch (msg)
+	{
+		case WM_INITDIALOG:
+		{
+			// Clear the version info
+			SetDlgItemText(hwnd, IDC_VERSION_TEXT, "");
+
+			// Attempt to get the current product version
+			char path[MAX_PATH + 1] = { 0 };
+			GetModuleFileName(NULL, path, MAX_PATH);
+			DWORD dummy;
+			DWORD dwSize = GetFileVersionInfoSize(path, &dummy);
+			if (dwSize == 0)
+			{
+				return TRUE;
+			}
+			std::vector<BYTE> versionInfo(dwSize);
+
+			if (!GetFileVersionInfo(path, NULL, dwSize, &versionInfo[0]))
+			{
+				return TRUE;
+			}
+			UINT versionLen = 0;
+			VS_FIXEDFILEINFO* pffi = 0;
+			if (VerQueryValue(&versionInfo[0], TEXT("\\"), (void**)&pffi, (UINT*)&versionLen) == 0)
+			{
+				return TRUE;
+			}
+
+			// Set the version info in the about box
+			std::ostringstream vs;
+			vs << "Version " << HIWORD(pffi->dwProductVersionMS) << "."
+				<< LOWORD(pffi->dwProductVersionMS) << "."
+				<< HIWORD(pffi->dwProductVersionLS) << "."
+				<< LOWORD(pffi->dwProductVersionLS);
+			SetDlgItemText(hwnd, IDC_VERSION_TEXT, vs.str().c_str());
+
+			return TRUE;
+		}
+		break;
+
+		case WM_NOTIFY:
+		{
+			switch (((LPNMHDR)lParam)->code)
+			{
+			case NM_CLICK:
+			case NM_RETURN:
+			{
+				char url[512];
+				GetDlgItemText(hwnd, IDC_SYSLINK1, url, 512);
+				lstrcpyn(url, url + 3, lstrlen(url) - 7 + 1);
+				ShellExecute(NULL, "open", url, NULL, NULL, SW_SHOW);
+				return TRUE;
+			}
+			break;
+			}
+		}
+		break;
+
+		case WM_COMMAND:
+		{
+			if (LOWORD(wParam) == IDOK)
+			{
+				EndDialog(hwnd, IDOK);
+				return TRUE;
+			}
+		}
+		break;
+
+		case WM_SYSCOMMAND:
+		{
+			if (wParam == SC_CLOSE)
+			{
+				EndDialog(hwnd, IDOK);
+				return TRUE;
+			}
+		}
+		break;
+
+	}
+	return FALSE;
 }
