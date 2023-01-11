@@ -51,7 +51,6 @@ namespace mcm {
 		static bool get_window_placement (HWND hwnd, WINDOWPLACEMENT & place);
 
 	private:
-		volatile bool _clearing;
 		mapwin_t _windows;
 		dev _screen_size;
 	};

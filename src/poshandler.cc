@@ -166,7 +166,6 @@ namespace mcm {
 	}
 
 	poshandler::poshandler ()
-		: _clearing (false)
 	{
 		logf ();
 		
@@ -191,12 +190,7 @@ namespace mcm {
 	void poshandler::get_windows ()
 	{
 		logf ();
-		if (_clearing) {
-			logp (sys::e_debug, "We are clearing, don't get more windows");
-			return;
-		}
-		logp (sys::e_debug, "Getting current desktop windows. (clearing windows map)");
-		_clearing = true;
+		logp (sys::e_debug, "Getting current desktop windows.");
 		mapwin_t new_map;
 
 		// Save off the starting config name and reset the enumeration count
@@ -227,23 +221,12 @@ namespace mcm {
 			}
 		}
 		_windows = new_map;
-		
-		_clearing = false;
-		logp (sys::e_debug, "Got current desktop windows. (not clearing anymore)");
+		logp (sys::e_debug, "Got current desktop windows.");
 	}
 
 	void poshandler::reposition(std::string config_name)
 	{
 		logf ();
-		if (_clearing) {
-			size_t clearing_count = 0;
-			while (_clearing and ++clearing_count < 1000)
-				;
-			if (clearing_count > 999) {
-				logp (sys::e_debug,
-					"Clearing has reached 1000 (so reposition wait has to be forced.");
-			}
-		}
 		logp (sys::e_debug, "Repositioning.");
 
 		// Get the scaling of the primary display
