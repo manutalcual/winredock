@@ -39,6 +39,7 @@
 #include <iostream>
 #include <map>
 #include <fstream>
+#include <chrono>
 
 #include <windows.h>
 #include <shlobj.h>
@@ -56,8 +57,8 @@
 
 
 #ifdef WITH_LOG
-#define logp(p, str) mcm::sys::log << "[" << __FILE__	\
-	<< ":" << __LINE__ << "] " << mcm::sys::log_tabs::tabs << str << std::endl
+#define logp(p, str) mcm::sys::log << "[" << std::format("{0:%F_%T}", std::chrono::system_clock::now()) << "] [" << __FILE__	\
+	<< ":" << __LINE__ << "]" << mcm::sys::log_tabs::tabs << str << std::endl
 #define logf() mcm::sys::log_tabs t___; \
 	mcm::sys::log << "[" << __FILE__ \
 	<< ":" << __LINE__ << "] " \
@@ -81,6 +82,7 @@ public:
 	public:
 		WINDOWPLACEMENT _place;
 		HMONITOR _hmon;
+		int _scale;
 	};
 	typedef std::map<std::string, win_t::place_t> places_t;
 	HWND _hwnd;
@@ -95,6 +97,8 @@ public:
 
 	win_t ()
 		: _hwnd{},
+		  _hdc{},
+		  _place{},
 		  _deserialized{},
 		  _erase{},
 		  _off_screen{}
@@ -144,7 +148,6 @@ namespace mcm {
 			e_failure
 		};
 
-		int atoi (std::string & str);
 		std::string itoa (int str);
 
 		class stat_t

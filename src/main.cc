@@ -26,6 +26,14 @@
 #include "main.hh"
 #include "dev.hh"
 
+// Enable the latest common controls
+#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' ""version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+
+// Link with necessary libraries
+#pragma comment (lib, "comctl32.lib")
+#pragma comment (lib, "version.lib")
+
+
 const char c_class_name[] = "WinReDock";
 const char c_window_title[] = "WinReDock - restore windows to pre-undock positions";
 const char c_taskbar_icon_text[] = "WinReDock -- tooling; dockerify after undock!";
@@ -36,8 +44,18 @@ mcm::window<c_class_name,
 
 std::string file_name{"window_list.json"};
 
+INT_PTR CALLBACK AboutProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, int iCmdShow )
 {
+	// Only allow one instance of the app to run
+	HANDLE mutex = CreateMutex(NULL, TRUE, "WinReDock:{0C023FEF-AC05-47A7-BC3A-5270916D768C}");
+	if (ERROR_ALREADY_EXISTS == GetLastError())
+	{
+		// Another instance is already running
+		return 1;
+	}
+
 	logf ();
 	logp (sys::e_debu, "Creating window with class name: " << c_class_name);
 
@@ -63,40 +81,14 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 			app.create_menu (
 				// Context left click function
 				[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-					//positioner.reposition ();
 					return app;
 				}) // Context menus and functions
-				/*
-				  There is no use for menu entries.
-				  In previous versions window repositioning was done
-				  by menu clicking, now it is automatic, so these
-				  are no more useful. I left them here just becaus I
-				  have some plans for the future that involve menu
-				  handling and I don´t want to rewrite them.
-				 */
 				.add_menu_item(MF_STRING,
-							   ID_TRAY_LOAD_WINDOWS_MENU,
-							   TEXT("Get windows"),
+							   ID_TRAY_ABOUT_MENU_ITEM,
+							   TEXT("About WinReDock..."),
 							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-								   logp (sys::e_debug, "Call to load windows.");
-								   //positioner.get_windows ();
-								   return app;
-							   })
-				.add_menu_item(MF_STRING,
-							   ID_TRAY_SAVE_MENU,
-							   TEXT("Save config."),
-							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-								   logp (sys::e_debug, "Calling to serialize data.");
-								   //positioner.save_configuration (file_name);
-								   logp (sys::e_debug, "Ok. Done.");
-								   return app;
-							   })
-				.add_menu_item(MF_STRING,
-							   ID_TRAY_LOAD_MENU,
-							   TEXT("Read config."),
-							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-								   logp (sys::e_debug, "Calling to read file.");
-								   //positioner.load_configuration (file_name);
+								   logp (sys::e_debug, "Display about dialog.");
+								   DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_DIALOG1), hwnd, AboutProc);
 								   return app;
 							   })
 				.add_menu_item(MF_SEPARATOR, 0, NULL)
@@ -106,38 +98,17 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 							   TEXT("Exit"),
 							   [&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
 								   logp (sys::e_debug, "Calling to exit app.");
-								   PostQuitMessage (0) ;
-								   return app; // this should never be reached
+								   DestroyWindow(hwnd);
+								   return app;
 							   })
-				.register_all_guids ();
+				.start_timer();
+				
 			return app;
 		};
 
 	/*
 	  These are Windows operating system messages we react on.
 	*/
-
-	app[WM_SYSCOMMAND] =
-		[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-			logf ();
-			switch (wParam & 0xfff0) {
-			case SC_MINIMIZE:
-			case SC_CLOSE:
-				app.minimize ();
-				break;
-			}
-			return app;
-		};
-
-	app[WM_NCHITTEST] =
-		[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
-			logf ();
-			LRESULT uHitTest = DefWindowProc(hwnd, WM_NCHITTEST, wParam, lParam);
-			if(uHitTest == HTCLIENT)
-				return HTCAPTION;
-			else
-				return uHitTest;
-		};
 
 	app[WM_TRAYICON] =
 		[&] (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) -> DWORD {
@@ -155,8 +126,6 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 				hwnd,
 				NULL
 				);
-
-			//SendMessage (hwnd, WM_NULL, 0, 0);
 			return clicked;
 		};
 
@@ -174,7 +143,11 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR args, in
 
 	logp (sys::e_debug, "En creations, begin the main loop.");
 
-	return app.loop(); //msg.wParam;
+	int app_result = (int) app.loop(); //msg.wParam;
+
+	ReleaseMutex(mutex);
+	CloseHandle(mutex);
+	return app_result;
 }
 
 LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -187,4 +160,89 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	logp (sys::e_debug, "Return from handled: "
 		  << r);
 	return r;
+}
+
+INT_PTR CALLBACK AboutProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch (msg)
+	{
+		case WM_INITDIALOG:
+		{
+			// Clear the version info
+			SetDlgItemText(hwnd, IDC_VERSION_TEXT, "");
+
+			// Attempt to get the current product version
+			char path[MAX_PATH + 1] = { 0 };
+			GetModuleFileName(NULL, path, MAX_PATH);
+			DWORD dummy;
+			DWORD dwSize = GetFileVersionInfoSize(path, &dummy);
+			if (dwSize == 0)
+			{
+				return TRUE;
+			}
+			std::vector<BYTE> versionInfo(dwSize);
+
+			if (!GetFileVersionInfo(path, NULL, dwSize, &versionInfo[0]))
+			{
+				return TRUE;
+			}
+			UINT versionLen = 0;
+			VS_FIXEDFILEINFO* pffi = 0;
+			if (VerQueryValue(&versionInfo[0], TEXT("\\"), (void**)&pffi, (UINT*)&versionLen) == 0)
+			{
+				return TRUE;
+			}
+
+			// Set the version info in the about box
+			std::ostringstream vs;
+			vs << "Version " << HIWORD(pffi->dwProductVersionMS) << "."
+				<< LOWORD(pffi->dwProductVersionMS) << "."
+				<< HIWORD(pffi->dwProductVersionLS) << "."
+				<< LOWORD(pffi->dwProductVersionLS);
+			SetDlgItemText(hwnd, IDC_VERSION_TEXT, vs.str().c_str());
+
+			return TRUE;
+		}
+		break;
+
+		case WM_NOTIFY:
+		{
+			switch (((LPNMHDR)lParam)->code)
+			{
+			case NM_CLICK:
+			case NM_RETURN:
+			{
+				char url[512];
+				GetDlgItemText(hwnd, IDC_SYSLINK1, url, 512);
+				lstrcpyn(url, url + 3, lstrlen(url) - 7 + 1);
+				ShellExecute(NULL, "open", url, NULL, NULL, SW_SHOW);
+				return TRUE;
+			}
+			break;
+			}
+		}
+		break;
+
+		case WM_COMMAND:
+		{
+			if (LOWORD(wParam) == IDOK)
+			{
+				EndDialog(hwnd, IDOK);
+				return TRUE;
+			}
+		}
+		break;
+
+		case WM_SYSCOMMAND:
+		{
+			if (wParam == SC_CLOSE)
+			{
+				EndDialog(hwnd, IDOK);
+				return TRUE;
+			}
+		}
+		break;
+
+	}
+	return FALSE;
 }

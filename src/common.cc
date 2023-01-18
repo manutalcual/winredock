@@ -41,12 +41,6 @@ namespace mcm {
 		std::ofstream log ("wm.log");
 #endif
 
-		int atoi (std::string & str)
-		{
-			int num = ::strtol(str.c_str(), NULL, 10);
-			return num;
-		}
-
 		std::string itoa (int i)
 		{
 			char buf[124];

@@ -12,13 +12,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\common.hh" />
-    <ClInclude Include="..\src\deserializer.hh" />
     <ClInclude Include="..\src\dev.hh" />
-    <ClInclude Include="..\src\list.h" />
     <ClInclude Include="..\src\main.hh" />
     <ClInclude Include="..\src\poshandler.hh" />
     <ClInclude Include="..\src\resource.h" />
-    <ClInclude Include="..\src\serializer.hh" />
     <ClInclude Include="..\src\window.hh" />
   </ItemGroup>
   <ItemGroup>
@@ -29,11 +26,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\common.cc" />
-    <ClCompile Include="..\src\deserializer.cc" />
     <ClCompile Include="..\src\dev.cc" />
     <ClCompile Include="..\src\main.cc" />
     <ClCompile Include="..\src\poshandler.cc" />
-    <ClCompile Include="..\src\serializer.cc" />
     <ClCompile Include="..\src\window.cc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -60,13 +55,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
@@ -97,12 +92,18 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;WITH_LOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Cfgmgr32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Shcore.lib;Cfgmgr32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <Manifest>
+      <AdditionalManifestFiles>
+      </AdditionalManifestFiles>
+      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -133,14 +134,20 @@
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Cfgmgr32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Shcore.lib;Cfgmgr32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <Manifest>
+      <AdditionalManifestFiles>
+      </AdditionalManifestFiles>
+      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
+    </Manifest>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -23,7 +23,6 @@
 #ifndef poshandler_hh
 #define poshandler_hh
 #include "common.hh"
-#include "serializer.hh"
 #include "dev.hh"
 
 BOOL is_alt_tab_window (HWND hwnd);
@@ -44,21 +43,14 @@ namespace mcm {
 		};
 	public:
 		poshandler ();
-		void reposition ();
+		void reposition (std::string config_name);
 		void get_windows ();
-		void save_configuration (std::string file_name);
-		void load_configuration (std::string file_name);
-		bool window_exist (HWND & hwnd);
-		void remove_window (HWND & hwnd);
-		void uniform_windows (poshandler & pos);
-		void uniform_windows ();
 
 		static bool get_class_name (HWND hwnd, LPSTR buf, INT buf_size);
 		static bool discard_window_app_frame (const char * class_name, INT buf_size);
 		static bool get_window_placement (HWND hwnd, WINDOWPLACEMENT & place);
 
 	private:
-		volatile bool _clearing;
 		mapwin_t _windows;
 		dev _screen_size;
 	};
